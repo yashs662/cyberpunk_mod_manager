@@ -1,18 +1,21 @@
 use std::path::PathBuf;
-
-use cyberpunk_mod_manager::{Focus, AppMode, App};
 use tui::{
     layout::{Rect, Layout, Direction, Constraint, Alignment},
     backend::Backend,
     Frame,
     text::{Spans, Span, Text},
-    widgets::{Paragraph, Block, Borders, Wrap, ListItem, List}
+    widgets::{Paragraph, Block, Borders, Wrap, ListItem, List, ListState}
 };
 use tui_logger::TuiLoggerWidget;
 
 use crate::{
     constants::{MIN_TERM_WIDTH, MIN_TERM_HEIGHT, ERROR_TEXT_STYLE, DEFAULT_STYLE,
-                APP_TITLE, INPUT_STYLE, FOCUS_STYLE, LIST_SELECT_STYLE, LOG_ERROR_STYLE, LOG_DEBUG_STYLE, LOG_WARN_STYLE, LOG_TRACE_STYLE, LOG_INFO_STYLE, MOD_FOLDER_INPUT_EMPTY_ERROR, NOT_A_DIRECTORY_ERROR, CYBERPUNK_FOLDER_INPUT_EMPTY_ERROR, NOT_A_VALID_CYBERPUNK_FOLDER_ERROR},
+                APP_TITLE, INPUT_STYLE, FOCUS_STYLE, LIST_SELECT_STYLE, LOG_ERROR_STYLE,
+                LOG_DEBUG_STYLE, LOG_WARN_STYLE, LOG_TRACE_STYLE, LOG_INFO_STYLE,
+                MOD_FOLDER_INPUT_EMPTY_ERROR, NOT_A_DIRECTORY_ERROR, CYBERPUNK_FOLDER_INPUT_EMPTY_ERROR,
+                NOT_A_VALID_CYBERPUNK_FOLDER_ERROR
+    },
+    App, app::state::{Focus, AppStatus},
 };
 
 /// Helper function to check terminal size
@@ -62,7 +65,7 @@ pub fn draw_title<'a>() -> Paragraph<'a> {
         )
 }
 
-pub fn draw_select_folder<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+pub fn draw_select_folder<B: Backend>(f: &mut Frame<B>, app: &App) {
 
     let submit_style = if app.state.focus == Focus::Submit {
         FOCUS_STYLE
@@ -85,9 +88,9 @@ pub fn draw_select_folder<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .style(DEFAULT_STYLE)
         .wrap(Wrap { trim: true });
 
-    let mod_folder_text = app.state.temp_input_store[0].clone();
+    let mod_folder_text = app.state.select_folder_form[0].clone();
     let mod_folder_input_style = if app.state.focus == Focus::ModFolderInput {
-        if app.state.app_mode == AppMode::Input {
+        if app.state.status == AppStatus::UserInput {
             INPUT_STYLE
         } else {
             FOCUS_STYLE
@@ -102,9 +105,9 @@ pub fn draw_select_folder<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .style(mod_folder_input_style)
         .wrap(Wrap { trim: true });
 
-    let cyberpunk_folder_text = app.state.temp_input_store[1].clone();
+    let cyberpunk_folder_text = app.state.select_folder_form[1].clone();
     let cyberpunk_folder_input_style = if app.state.focus == Focus::CyberpunkFolderInput {
-        if app.state.app_mode == AppMode::Input {
+        if app.state.status == AppStatus::UserInput {
             INPUT_STYLE
         } else {
             FOCUS_STYLE
@@ -128,14 +131,14 @@ pub fn draw_select_folder<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .wrap(Wrap { trim: true });
 
     // check if input mode is active, if so, show cursor
-    if app.state.app_mode == AppMode::Input && app.state.focus == Focus::ModFolderInput {
+    if app.state.status == AppStatus::UserInput && app.state.focus == Focus::ModFolderInput {
         f.set_cursor(
-            chunks[1].x + app.state.temp_input_store[0].len() as u16 + 1,
+            chunks[1].x + app.state.select_folder_form[0].len() as u16 + 1,
             chunks[1].y + 1,
         );
-    } else if app.state.app_mode == AppMode::Input && app.state.focus == Focus::CyberpunkFolderInput {
+    } else if app.state.status == AppStatus::UserInput && app.state.focus == Focus::CyberpunkFolderInput {
         f.set_cursor(
-            chunks[2].x + app.state.temp_input_store[1].len() as u16 + 1,
+            chunks[2].x + app.state.select_folder_form[1].len() as u16 + 1,
             chunks[2].y + 1,
         );
     }
@@ -146,7 +149,7 @@ pub fn draw_select_folder<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     f.render_widget(submit_button, chunks[3]);
 }
 
-pub fn draw_explore<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+pub fn draw_explore<B: Backend>(f: &mut Frame<B>, app: &App, file_list_state: &mut ListState) {
     // Create two chunks with equal horizontal screen space
     let main_chunks = Layout::default()
         .direction(Direction::Vertical)
@@ -228,7 +231,7 @@ pub fn draw_explore<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .output_level(None);
     
     f.render_widget(title_widget, main_chunks[0]);
-    f.render_stateful_widget(items_list, chunks[0], &mut app.state.file_list.state);
+    f.render_stateful_widget(items_list, chunks[0], file_list_state);
     f.render_widget(log_widget, chunks[1]);
     f.render_widget(current_folder_widget, main_chunks[2]);
     f.render_widget(cyberpunk_folder_widget, main_chunks[3]);

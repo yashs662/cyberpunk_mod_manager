@@ -1,139 +1,70 @@
-use std::path::PathBuf;
+use std::io::stdout;
+use std::sync::Arc;
+use std::time::Duration;
 
-use tui::widgets::ListState;
+use app::{
+    App,
+    AppReturn
+};
+use eyre::Result;
+use inputs::events::Events;
+use inputs::InputEvent;
+use io::IoEvent;
+use tui::backend::CrosstermBackend;
+use tui::Terminal;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum Focus {
-    Nothing,
-    Submit,
-    ModFolderInput,
-    CyberpunkFolderInput
-}
+pub mod constants;
+pub mod io;
+pub mod inputs;
+pub mod app;
+pub mod ui;
 
-impl Focus {
-    pub fn all() -> Vec<Focus> {
-        vec![Focus::Submit, Focus::ModFolderInput, Focus::CyberpunkFolderInput]
+pub async fn start_ui(app: &Arc<tokio::sync::Mutex<App>>) -> Result<()> {
+    // Configure Crossterm backend for tui
+    let stdout = stdout();
+    crossterm::terminal::enable_raw_mode()?;
+    let backend = CrosstermBackend::new(stdout);
+    let mut terminal = Terminal::new(backend)?;
+    terminal.clear()?;
+    terminal.hide_cursor()?;
+
+    // User event handler
+    let tick_rate = Duration::from_millis(500);
+    let mut events = Events::new(tick_rate);
+
+    // Trigger state change from Init to Initialized
+    {
+        let mut app = app.lock().await;
+        // Here we assume the the first load is a long task
+        app.dispatch(IoEvent::Initialize).await;
     }
 
-    pub fn next(&self) -> Focus {
-        let index = Focus::all().iter().position(|&r| r == *self).unwrap();
-        let next = (index + 1) % Focus::all().len();
-        Focus::all()[next]
-    }
+    loop {
+        let mut app = app.lock().await;
+        let mut states = app.state.clone();
+        // Render
+        terminal.draw(|rect| ui::draw(rect, &mut app, &mut states))?;
 
-    pub fn previous(&self) -> Focus {
-        let index = Focus::all().iter().position(|&r| r == *self).unwrap();
-        let previous = if index == 0 {
-            Focus::all().len() - 1
-        } else {
-            index - 1
-        };
-        Focus::all()[previous]
-    }
-
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum UiMode {
-    Explore,
-    SelectFolder,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum AppMode {
-    Normal,
-    Input,
-}
-
-pub struct AppState {
-    pub focus: Focus,
-    pub current_input: String,
-    pub temp_input_store: Vec<String>,
-    pub app_mode: AppMode,
-    pub ui_mode: UiMode,
-    pub file_list: StatefulList<(String, usize)>,
-    
-}
-
-impl AppState {
-    fn new() -> AppState {
-        AppState {
-            focus: Focus::Nothing,
-            current_input: String::new(),
-            temp_input_store: vec![String::new(), String::new()],
-            app_mode: AppMode::Normal,
-            ui_mode: UiMode::Explore,
-            file_list: StatefulList::with_items(vec![]),
-        }
-    }
-}
-
-pub struct StatefulList<T> {
-    pub state: ListState,
-    pub items: Vec<T>,
-}
-
-impl<T> StatefulList<T> {
-    pub fn with_items(items: Vec<T>) -> StatefulList<T> {
-        StatefulList {
-            state: ListState::default(),
-            items,
-        }
-    }
-
-    pub fn next(&mut self) {
-        let i = match self.state.selected() {
-            Some(i) => {
-                if self.items.is_empty() {
-                    0
-                } else if i >= self.items.len() - 1 {
-                    0
-                } else {
-                    i + 1
-                }
+        // Handle inputs
+        let result = match events.next().await {
+            InputEvent::Input(key) => app.do_action(key).await,
+            InputEvent::Tick => {
+                // We could do something here
+                AppReturn::Continue
             }
-            None => 0,
         };
-        self.state.select(Some(i));
-    }
-
-    pub fn previous(&mut self) {
-        let i = match self.state.selected() {
-            Some(i) => {
-                if self.items.is_empty() {
-                    0
-                } else if i == 0 {
-                    self.items.len() - 1
-                } else {
-                    i - 1
-                }
-            }
-            None => 0,
-        };
-        self.state.select(Some(i));
-    }
-
-    pub fn unselect(&mut self) {
-        self.state.select(None);
-    }
-}
-
-pub struct App {
-    pub state: AppState,
-    pub selected_folder: Option<PathBuf>,
-    pub cyberpunk_folder: Option<PathBuf>,
-}
-
-impl App {  
-    pub fn new() -> App {
-        App {
-            state: AppState::new(),
-            selected_folder: None,
-            cyberpunk_folder: None,
+        // Check if we should exit
+        if result == AppReturn::Exit {
+            events.close();
+            break;
         }
     }
 
-    pub fn on_tick(&mut self) {
-        // Do nothing for now
-    }
+    // Restore the terminal and close application
+    terminal.clear()?;
+    terminal.set_cursor(0, 0)?;
+    terminal.show_cursor()?;
+    crossterm::terminal::disable_raw_mode()?;
+
+    Ok(())
 }

@@ -2,7 +2,59 @@ use std::{path::PathBuf, env::temp_dir, fs::{create_dir_all, File, remove_dir_al
 
 use compress_tools::{uncompress_archive, Ownership};
 use log::info;
+use tui::widgets::ListState;
 use walkdir::WalkDir;
+
+#[derive(Debug, Clone)]
+pub struct StatefulList<T> {
+    pub state: ListState,
+    pub items: Vec<T>,
+}
+
+impl<T> StatefulList<T> {
+    pub fn with_items(items: Vec<T>) -> StatefulList<T> {
+        StatefulList {
+            state: ListState::default(),
+            items,
+        }
+    }
+
+    pub fn next(&mut self) {
+        let i = match self.state.selected() {
+            Some(i) => {
+                if self.items.is_empty() {
+                    0
+                } else if i >= self.items.len() - 1 {
+                    0
+                } else {
+                    i + 1
+                }
+            }
+            None => 0,
+        };
+        self.state.select(Some(i));
+    }
+
+    pub fn previous(&mut self) {
+        let i = match self.state.selected() {
+            Some(i) => {
+                if self.items.is_empty() {
+                    0
+                } else if i == 0 {
+                    self.items.len() - 1
+                } else {
+                    i - 1
+                }
+            }
+            None => 0,
+        };
+        self.state.select(Some(i));
+    }
+
+    pub fn unselect(&mut self) {
+        self.state.select(None);
+    }
+}
 
 pub fn log_help() {
     info!("Press 's' to select a folder");
