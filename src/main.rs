@@ -1,14 +1,17 @@
+use compress_tools::{uncompress_archive, Ownership};
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use log::{LevelFilter, info};
+use log::{LevelFilter, info, error};
 use tui_logger::TuiLoggerWidget;
+use ui::ui::{draw_select_folder, draw_explore};
+use walkdir::WalkDir;
 use std::{
     error::Error,
     io,
-    time::{Duration, Instant}, path::{PathBuf, Path}, fs,
+    time::{Duration, Instant}, path::{PathBuf, Path}, fs::{self, File, create_dir_all, remove_dir_all}, env::temp_dir,
 };
 use tui::{
     backend::{Backend, CrosstermBackend},
@@ -19,24 +22,8 @@ use tui::{
     Frame, Terminal,
 };
 
-const FOCUS_STYLE: Style = Style{
-    fg: Some(Color::Cyan),
-    bg: Some(Color::Black),
-    add_modifier: Modifier::BOLD,
-    sub_modifier: Modifier::empty(),
-};
-const NORMAL_STYLE: Style = Style{
-    fg: Some(Color::White),
-    bg: Some(Color::Black),
-    add_modifier: Modifier::empty(),
-    sub_modifier: Modifier::empty(),
-};
-const INPUT_STYLE: Style = Style{
-    fg: Some(Color::LightGreen),
-    bg: Some(Color::Black),
-    add_modifier: Modifier::BOLD,
-    sub_modifier: Modifier::empty(),
-};
+pub mod ui;
+pub mod constants;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum Focus {
@@ -86,7 +73,7 @@ struct AppState {
     app_mode: AppMode,
     ui_mode: UiMode,
     file_list: StatefulList<(String, usize)>,
-    selected_folder: Option<PathBuf>,
+    
 }
 
 impl AppState {
@@ -97,7 +84,6 @@ impl AppState {
             app_mode: AppMode::Normal,
             ui_mode: UiMode::Explore,
             file_list: StatefulList::with_items(vec![]),
-            selected_folder: None,
         }
     }
 }
@@ -159,14 +145,18 @@ impl<T> StatefulList<T> {
 /// Check the event handling at the bottom to see how to change the state on incoming events.
 /// Check the drawing logic for items on how to specify the highlighting style for selected items.
 
-struct App {
+pub struct App {
     state: AppState,
+    selected_folder: Option<PathBuf>,
+    cyberpunk_folder: Option<PathBuf>,
 }
 
 impl App {  
     fn new() -> App {
         App {
             state: AppState::new(),
+            selected_folder: None,
+            cyberpunk_folder: None,
         }
     }
 
@@ -268,7 +258,7 @@ fn run_app<B: Backend>(
                             }
                             let input_path = Path::new(&current_input);
                             if input_path.is_dir() {
-                                app.state.selected_folder = Some(input_path.to_path_buf());
+                                app.selected_folder = Some(input_path.to_path_buf());
                                 let mut files = vec![];
                                 for entry in fs::read_dir(input_path)? {
                                     if let Ok(entry) = entry {
@@ -286,6 +276,15 @@ fn run_app<B: Backend>(
                                 app.state.focus = Focus::Nothing;
                             } else {
                                 app.state.current_input = format!("{} is not a directory", current_input)
+                            }
+                        }
+                        if app.state.ui_mode == UiMode::Explore {
+                            if let Some(selected) = app.state.file_list.state.selected() {
+                                let selected_file = app.state.file_list.items[selected].0.clone();
+                                let selected_file_path = Path::new(&app.selected_folder.as_ref().unwrap()).join(selected_file);
+                                if !check_if_mod_is_valid(selected_file_path.clone()) {
+                                    error!("{} is not a valid mod", selected_file_path.to_string_lossy());
+                                }
                             }
                         }
                     }
@@ -333,141 +332,6 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     }
 }
 
-fn draw_select_folder<B: Backend>(f: &mut Frame<B>, app: &mut App) {
-    
-    let input_style = if app.state.focus == Focus::Input {
-        if app.state.app_mode == AppMode::Input {
-            INPUT_STYLE
-        } else {
-            FOCUS_STYLE
-        }
-    } else {
-        NORMAL_STYLE
-    };
-
-    let submit_style = if app.state.focus == Focus::Submit {
-        FOCUS_STYLE
-    } else {
-        NORMAL_STYLE
-    };
-
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Percentage(10),
-            Constraint::Percentage(80),
-            Constraint::Percentage(10)
-            ].as_ref())
-        .split(f.size());
-
-    let title = Paragraph::new(Text::styled("Select Folder", Style::default().fg(Color::White)))
-        .block(Block::default().borders(Borders::ALL))
-        .style(Style::default().fg(Color::White))
-        .wrap(Wrap { trim: true });
-
-    let current_input = app.state.current_input.clone();
-
-    let input = Paragraph::new(Text::raw(current_input))
-        .block(Block::default().borders(Borders::ALL).title("Folder"))
-        .style(input_style)
-        .wrap(Wrap { trim: true });
-
-    let button = Paragraph::new("Submit")
-        .block(Block::default().borders(Borders::ALL))
-        .style(submit_style)
-        .wrap(Wrap { trim: true });
-
-    // check if input mode is active, if so, show cursor
-    if app.state.app_mode == AppMode::Input {
-        f.set_cursor(
-            chunks[1].x + app.state.current_input.len() as u16 + 1,
-            chunks[1].y + 1,
-        );
-    }
-
-    f.render_widget(title, chunks[0]);
-    f.render_widget(input, chunks[1]);
-    f.render_widget(button, chunks[2]);
-}
-
-fn draw_explore<B: Backend>(f: &mut Frame<B>, app: &mut App) {
-    // Create two chunks with equal horizontal screen space
-    let main_chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Percentage(10),
-            Constraint::Percentage(80),
-            Constraint::Percentage(10)
-            ].as_ref())
-        .split(f.size());
-    
-    let chunks = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage(70),
-            Constraint::Percentage(30)
-            ].as_ref())
-        .split(main_chunks[1]);
-
-    let title_widget = Paragraph::new(Text::styled("Cyberpunk Mod Manager", Style::default().fg(Color::White)))
-        .block(Block::default().borders(Borders::ALL))
-        .style(Style::default().fg(Color::White))
-        .wrap(Wrap { trim: true });
-    
-    let current_folder = app.state.selected_folder.clone().unwrap_or_else(|| PathBuf::new());
-    // check if current folder is a directory if not set it to No folder selected
-    let current_folder_string = if current_folder.is_dir() {
-        current_folder.to_string_lossy().to_string()
-    } else {
-        "No folder selected".to_string()
-    };
-    let current_folder_widget = Paragraph::new(Text::raw(current_folder_string))
-        .block(Block::default().borders(Borders::ALL).title("Current Folder"))
-        .style(NORMAL_STYLE)
-        .wrap(Wrap { trim: true });
-
-
-    // Create a list of ListItems from the list of files
-    let items: Vec<ListItem> = app
-        .state.file_list
-        .items
-        .iter()
-        .map(|(name, _size)| {
-            ListItem::new(Text::from(name.clone()))
-        })
-        .collect();
-
-    // Create a List from all list items and highlight the currently selected one
-    let items_list = List::new(items)
-        .block(Block::default().borders(Borders::ALL).title("Available files"))
-        .highlight_style(
-            Style::default()
-                .bg(Color::LightGreen)
-                .add_modifier(Modifier::BOLD),
-        )
-        .highlight_symbol(">> ");
-
-    let log_widget = TuiLoggerWidget::default()
-        .style_error(Style::default().fg(Color::Red))
-        .style_debug(Style::default().fg(Color::Green))
-        .style_warn(Style::default().fg(Color::Yellow))
-        .style_trace(Style::default().fg(Color::Blue))
-        .style_info(Style::default().fg(Color::LightCyan))
-        .block(
-            Block::default()
-                .title("Logs")
-                .borders(Borders::ALL),
-        )
-        .output_timestamp(None)
-        .output_target(false)
-        .output_level(None);
-    
-    f.render_widget(title_widget, main_chunks[0]);
-    f.render_stateful_widget(items_list, chunks[0], &mut app.state.file_list.state);
-    f.render_widget(log_widget, chunks[1]);
-    f.render_widget(current_folder_widget, main_chunks[2]);
-}
-
 fn log_help() {
     info!("Press 's' to select a folder");
     info!("Use UP/DOWN to navigate the list");
@@ -478,6 +342,48 @@ fn log_help() {
     info!("Press 'q' to quit");
 }
 
-fn check_if_mod_is_valid() -> bool {
-    true
+fn check_if_mod_is_valid(file_path: PathBuf) -> bool {
+    let mut is_valid = false;
+    // make sure the file exists
+    if !file_path.exists() {
+        info!("{} does not exist", file_path.to_string_lossy());
+        return false;
+    }
+    let file_name = &file_path.file_name().unwrap().to_string_lossy();
+    let mut destination = temp_dir();
+    // make a cyberpunk_mod_manager directory in the temp directory
+    destination.push("cyberpunk_mod_manager");
+    // make a directory with the name of the file
+    destination.push(file_path.file_name().unwrap());
+    // create the directory
+    create_dir_all(&destination).unwrap();
+    // extract the zip file to the destination
+    let mut source = File::open(&file_path).unwrap();
+    uncompress_archive(&mut source, &destination, Ownership::Preserve).unwrap();
+    // check if the zip file contains any of the following folders
+    // archive, bin, engine, mods
+    // if it does, return true
+    // if the zip file has .ARCHIVE files, return true
+    // else return false
+    for entry in WalkDir::new(&destination) {
+        let entry = entry.unwrap();
+        let path = entry.path();
+        if path.is_dir() {
+            let dir_name = path.file_name().unwrap().to_string_lossy();
+            if dir_name == "archive" || dir_name == "bin" || dir_name == "engine" || dir_name == "mods" {
+                is_valid = true;
+                info!("Valid mod file: {}", file_name);
+            }
+        }
+        if path.is_file() {
+            let file_name = path.file_name().unwrap().to_string_lossy();
+            if file_name.ends_with(".archive") {
+                is_valid = true;
+                info!("Valid mod file: {}", file_name);
+            }
+        }
+    }
+    // remove the directory
+    remove_dir_all(&destination).unwrap();
+    is_valid
 }
