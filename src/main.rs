@@ -4,9 +4,11 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use cyberpunk_mod_manager::{App, AppMode, UiMode, Focus};
 use log::{LevelFilter, info, error};
-use tui_logger::TuiLoggerWidget;
+
 use ui::ui::{draw_select_folder, draw_explore};
+use utils::check_if_mod_is_valid;
 use walkdir::WalkDir;
 use std::{
     error::Error,
@@ -15,155 +17,14 @@ use std::{
 };
 use tui::{
     backend::{Backend, CrosstermBackend},
-    layout::{Constraint, Direction, Layout},
-    style::{Color, Modifier, Style},
-    text::Text,
-    widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Wrap},
     Frame, Terminal,
 };
 
+use crate::utils::log_help;
+
 pub mod ui;
 pub mod constants;
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-enum Focus {
-    Nothing,
-    Submit,
-    Input,
-}
-
-impl Focus {
-    fn all() -> Vec<Focus> {
-        vec![Focus::Submit, Focus::Input]
-    }
-
-    fn next(&self) -> Focus {
-        let index = Focus::all().iter().position(|&r| r == *self).unwrap();
-        let next = (index + 1) % Focus::all().len();
-        Focus::all()[next]
-    }
-
-    fn previous(&self) -> Focus {
-        let index = Focus::all().iter().position(|&r| r == *self).unwrap();
-        let previous = if index == 0 {
-            Focus::all().len() - 1
-        } else {
-            index - 1
-        };
-        Focus::all()[previous]
-    }
-
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-enum UiMode {
-    Explore,
-    SelectFolder,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-enum AppMode {
-    Normal,
-    Input,
-}
-
-struct AppState {
-    focus: Focus,
-    current_input: String,
-    app_mode: AppMode,
-    ui_mode: UiMode,
-    file_list: StatefulList<(String, usize)>,
-    
-}
-
-impl AppState {
-    fn new() -> AppState {
-        AppState {
-            focus: Focus::Nothing,
-            current_input: String::new(),
-            app_mode: AppMode::Normal,
-            ui_mode: UiMode::Explore,
-            file_list: StatefulList::with_items(vec![]),
-        }
-    }
-}
-
-struct StatefulList<T> {
-    state: ListState,
-    items: Vec<T>,
-}
-
-impl<T> StatefulList<T> {
-    fn with_items(items: Vec<T>) -> StatefulList<T> {
-        StatefulList {
-            state: ListState::default(),
-            items,
-        }
-    }
-
-    fn next(&mut self) {
-        let i = match self.state.selected() {
-            Some(i) => {
-                if self.items.is_empty() {
-                    0
-                } else if i >= self.items.len() - 1 {
-                    0
-                } else {
-                    i + 1
-                }
-            }
-            None => 0,
-        };
-        self.state.select(Some(i));
-    }
-
-    fn previous(&mut self) {
-        let i = match self.state.selected() {
-            Some(i) => {
-                if self.items.is_empty() {
-                    0
-                } else if i == 0 {
-                    self.items.len() - 1
-                } else {
-                    i - 1
-                }
-            }
-            None => 0,
-        };
-        self.state.select(Some(i));
-    }
-
-    fn unselect(&mut self) {
-        self.state.select(None);
-    }
-}
-
-/// This struct holds the current state of the app. In particular, it has the `items` field which is a wrapper
-/// around `ListState`. Keeping track of the items state let us render the associated widget with its state
-/// and have access to features such as natural scrolling.
-///
-/// Check the event handling at the bottom to see how to change the state on incoming events.
-/// Check the drawing logic for items on how to specify the highlighting style for selected items.
-
-pub struct App {
-    state: AppState,
-    selected_folder: Option<PathBuf>,
-    cyberpunk_folder: Option<PathBuf>,
-}
-
-impl App {  
-    fn new() -> App {
-        App {
-            state: AppState::new(),
-            selected_folder: None,
-            cyberpunk_folder: None,
-        }
-    }
-
-    fn on_tick(&mut self) {
-        // Do nothing for now
-    }
-}
+pub mod utils;
 
 fn main() -> Result<(), Box<dyn Error>> {
     // setup terminal
@@ -330,60 +191,4 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         UiMode::SelectFolder => draw_select_folder(f, app),
         UiMode::Explore => draw_explore(f, app)
     }
-}
-
-fn log_help() {
-    info!("Press 's' to select a folder");
-    info!("Use UP/DOWN to navigate the list");
-    info!("Press ENTER to select a file");
-    info!("Press 'i' to enter input mode (Green Highlight)");
-    info!("Press TAB to switch between input and submit button (Blue Highlight)");
-    info!("Press 'h' to see this help message again");
-    info!("Press 'q' to quit");
-}
-
-fn check_if_mod_is_valid(file_path: PathBuf) -> bool {
-    let mut is_valid = false;
-    // make sure the file exists
-    if !file_path.exists() {
-        info!("{} does not exist", file_path.to_string_lossy());
-        return false;
-    }
-    let file_name = &file_path.file_name().unwrap().to_string_lossy();
-    let mut destination = temp_dir();
-    // make a cyberpunk_mod_manager directory in the temp directory
-    destination.push("cyberpunk_mod_manager");
-    // make a directory with the name of the file
-    destination.push(file_path.file_name().unwrap());
-    // create the directory
-    create_dir_all(&destination).unwrap();
-    // extract the zip file to the destination
-    let mut source = File::open(&file_path).unwrap();
-    uncompress_archive(&mut source, &destination, Ownership::Preserve).unwrap();
-    // check if the zip file contains any of the following folders
-    // archive, bin, engine, mods
-    // if it does, return true
-    // if the zip file has .ARCHIVE files, return true
-    // else return false
-    for entry in WalkDir::new(&destination) {
-        let entry = entry.unwrap();
-        let path = entry.path();
-        if path.is_dir() {
-            let dir_name = path.file_name().unwrap().to_string_lossy();
-            if dir_name == "archive" || dir_name == "bin" || dir_name == "engine" || dir_name == "mods" {
-                is_valid = true;
-                info!("Valid mod file: {}", file_name);
-            }
-        }
-        if path.is_file() {
-            let file_name = path.file_name().unwrap().to_string_lossy();
-            if file_name.ends_with(".archive") {
-                is_valid = true;
-                info!("Valid mod file: {}", file_name);
-            }
-        }
-    }
-    // remove the directory
-    remove_dir_all(&destination).unwrap();
-    is_valid
 }

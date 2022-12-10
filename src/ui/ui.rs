@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use cyberpunk_mod_manager::{Focus, AppMode, App};
 use tui::{
     layout::{Rect, Layout, Direction, Constraint, Alignment},
     backend::Backend,
@@ -12,9 +13,6 @@ use tui_logger::TuiLoggerWidget;
 use crate::{
     constants::{MIN_TERM_WIDTH, MIN_TERM_HEIGHT, ERROR_TEXT_STYLE, DEFAULT_STYLE,
                 APP_TITLE, INPUT_STYLE, FOCUS_STYLE, LIST_SELECT_STYLE, LOG_ERROR_STYLE, LOG_DEBUG_STYLE, LOG_WARN_STYLE, LOG_TRACE_STYLE, LOG_INFO_STYLE},
-    Focus,
-    App,
-    AppMode
 };
 
 /// Helper function to check terminal size
