@@ -19,12 +19,6 @@ pub const ERROR_TEXT_STYLE: Style = Style {
     add_modifier: Modifier::BOLD,
     sub_modifier: Modifier::empty(),
 };
-pub const DEFAULT_STYLE: Style = Style{
-    fg: Some(Color::LightCyan),
-    bg: Some(Color::Black),
-    add_modifier: Modifier::empty(),
-    sub_modifier: Modifier::empty(),
-};
 pub const FOCUS_STYLE: Style = Style{
     fg: Some(Color::Rgb(26, 254, 73)),
     bg: Some(Color::Black),
@@ -69,6 +63,12 @@ pub const CYBERPUNK_STYLE_YELLOW: Style = Style {
 };
 pub const CYBERPUNK_STYLE_PINK: Style = Style {
     fg: Some(Color::Rgb(255, 0, 255)),
+    bg: Some(Color::Black),
+    add_modifier: Modifier::BOLD,
+    sub_modifier: Modifier::empty(),
+};
+pub const CYBERPUNK_STYLE_CYAN: Style = Style {
+    fg: Some(Color::Rgb(0, 255, 255)),
     bg: Some(Color::Black),
     add_modifier: Modifier::BOLD,
     sub_modifier: Modifier::empty(),

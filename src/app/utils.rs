@@ -1,7 +1,7 @@
 use std::{path::PathBuf, env::temp_dir, fs::{create_dir_all, File, remove_dir_all}};
 
 use compress_tools::{uncompress_archive, Ownership};
-use log::info;
+use log::{info, error};
 use tui::widgets::ListState;
 use walkdir::WalkDir;
 
@@ -73,7 +73,6 @@ pub fn check_if_mod_is_valid(file_path: PathBuf) -> bool {
         info!("{} does not exist", file_path.to_string_lossy());
         return false;
     }
-    let file_name = &file_path.file_name().unwrap().to_string_lossy();
     let mut destination = temp_dir();
     // make a cyberpunk_mod_manager directory in the temp directory
     destination.push("cyberpunk_mod_manager");
@@ -96,14 +95,12 @@ pub fn check_if_mod_is_valid(file_path: PathBuf) -> bool {
             let dir_name = path.file_name().unwrap().to_string_lossy();
             if dir_name == "archive" || dir_name == "bin" || dir_name == "engine" || dir_name == "mods" {
                 is_valid = true;
-                info!("Valid mod file: {}", file_name);
             }
         }
         if path.is_file() {
             let file_name = path.file_name().unwrap().to_string_lossy();
             if file_name.ends_with(".archive") {
                 is_valid = true;
-                info!("Valid mod file: {}", file_name);
             }
         }
     }
@@ -130,10 +127,8 @@ pub fn check_if_cyberpunk_dir_is_valid(file_path: PathBuf) -> bool {
             }
         }
     }
-    if is_valid {
-        info!("Valid Cyberpunk 2077 directory: {}", file_path.to_string_lossy());
-    } else {
-        info!("{} is not a valid Cyberpunk 2077 directory", file_path.to_string_lossy());
+    if !is_valid {
+        error!("{} is not a valid Cyberpunk 2077 directory", file_path.to_string_lossy());
     }
     is_valid
 }

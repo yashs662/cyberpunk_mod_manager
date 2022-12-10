@@ -9,11 +9,12 @@ use tui::{
 use tui_logger::TuiLoggerWidget;
 
 use crate::{
-    constants::{MIN_TERM_WIDTH, MIN_TERM_HEIGHT, ERROR_TEXT_STYLE, DEFAULT_STYLE,
+    constants::{MIN_TERM_WIDTH, MIN_TERM_HEIGHT, ERROR_TEXT_STYLE,
                 APP_TITLE, FOCUS_STYLE, LOG_ERROR_STYLE,
-                LOG_DEBUG_STYLE, LOG_WARN_STYLE, LOG_TRACE_STYLE, LOG_INFO_STYLE,
-                MOD_FOLDER_INPUT_EMPTY_ERROR, NOT_A_DIRECTORY_ERROR, CYBERPUNK_FOLDER_INPUT_EMPTY_ERROR,
-                NOT_A_VALID_CYBERPUNK_FOLDER_ERROR, CYBERPUNK_STYLE_YELLOW, CYBERPUNK_STYLE_PINK
+                LOG_DEBUG_STYLE, LOG_WARN_STYLE, LOG_TRACE_STYLE,
+                LOG_INFO_STYLE, MOD_FOLDER_INPUT_EMPTY_ERROR, NOT_A_DIRECTORY_ERROR,
+                CYBERPUNK_FOLDER_INPUT_EMPTY_ERROR, NOT_A_VALID_CYBERPUNK_FOLDER_ERROR,
+                CYBERPUNK_STYLE_YELLOW, CYBERPUNK_STYLE_PINK, CYBERPUNK_STYLE_CYAN
     },
     App, app::state::{Focus, AppStatus},
 };
@@ -70,7 +71,7 @@ pub fn draw_select_folder<B: Backend>(f: &mut Frame<B>, app: &App) {
     let submit_style = if app.state.focus == Focus::Submit {
         FOCUS_STYLE
     } else {
-        DEFAULT_STYLE
+        CYBERPUNK_STYLE_CYAN
     };
 
     let chunks = Layout::default()
@@ -83,9 +84,9 @@ pub fn draw_select_folder<B: Backend>(f: &mut Frame<B>, app: &App) {
             ].as_ref())
         .split(f.size());
 
-    let title = Paragraph::new(Text::styled("Select Folder, Press <i> to edit, <Tab> to change focus and <Enter> to submit", DEFAULT_STYLE))
+    let title = Paragraph::new(Text::styled("Select Folder, Press <i> to edit, <Tab> to change focus and <Enter> to submit", CYBERPUNK_STYLE_CYAN))
         .block(Block::default().borders(Borders::ALL))
-        .style(DEFAULT_STYLE)
+        .style(CYBERPUNK_STYLE_CYAN)
         .wrap(Wrap { trim: true });
 
     let mod_folder_text = app.state.select_folder_form[0].clone();
@@ -98,7 +99,7 @@ pub fn draw_select_folder<B: Backend>(f: &mut Frame<B>, app: &App) {
     } else if mod_folder_text.contains(MOD_FOLDER_INPUT_EMPTY_ERROR) || mod_folder_text.contains(NOT_A_DIRECTORY_ERROR){
         ERROR_TEXT_STYLE
     } else {
-        DEFAULT_STYLE
+        CYBERPUNK_STYLE_CYAN
     };
     let mod_folder = Paragraph::new(Text::raw(mod_folder_text))
         .block(Block::default().borders(Borders::ALL).title("Mods Folder"))
@@ -118,7 +119,7 @@ pub fn draw_select_folder<B: Backend>(f: &mut Frame<B>, app: &App) {
         {
         ERROR_TEXT_STYLE
     } else {
-        DEFAULT_STYLE
+        CYBERPUNK_STYLE_CYAN
     };
     let cyberpunk_folder = Paragraph::new(Text::raw(cyberpunk_folder_text))
         .block(Block::default().borders(Borders::ALL).title("Cyberpunk Folder"))
@@ -210,7 +211,7 @@ pub fn draw_explore<B: Backend>(f: &mut Frame<B>, app: &App, file_list_state: &m
         .block(Block::default().borders(Borders::ALL).title("Available files"))
         .highlight_style(CYBERPUNK_STYLE_PINK)
         .highlight_symbol(">> ")
-        .style(DEFAULT_STYLE);
+        .style(CYBERPUNK_STYLE_CYAN);
 
     let log_widget = TuiLoggerWidget::default()
         .style_error(LOG_ERROR_STYLE)
@@ -221,7 +222,7 @@ pub fn draw_explore<B: Backend>(f: &mut Frame<B>, app: &App, file_list_state: &m
         .block(
             Block::default()
                 .title("Logs")
-                .border_style(DEFAULT_STYLE)
+                .border_style(CYBERPUNK_STYLE_CYAN)
                 .borders(Borders::ALL),
         )
         .output_timestamp(None)
