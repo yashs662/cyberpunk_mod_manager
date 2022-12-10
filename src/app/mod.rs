@@ -2,8 +2,8 @@ use std::fs;
 use std::path::Path;
 use std::vec;
 use std::path::PathBuf;
+use log::debug;
 use log::{
-    info,
     error,
     warn
 };
@@ -15,6 +15,7 @@ use self::state::Focus;
 use self::state::UiMode;
 use self::utils::check_if_cyberpunk_dir_is_valid;
 use self::utils::check_if_mod_is_valid;
+use self::utils::log_help;
 use crate::app::actions::Action;
 use crate::constants::CYBERPUNK_FOLDER_INPUT_EMPTY_ERROR;
 use crate::constants::MOD_FOLDER_INPUT_EMPTY_ERROR;
@@ -93,7 +94,7 @@ impl App {
                 }
             } else {
                 self.state.status = AppStatus::Initialized;
-                info!("Exiting user input mode");
+                debug!("Exiting user input mode");
             }
             return AppReturn::Continue;
         } else {
@@ -180,8 +181,11 @@ impl App {
                         if self.state.focus == Focus::Submit {
                             let mut mod_folder_ok = false;
                             let mut cyberpunk_folder_ok = false;
-                            let mod_folder_input = self.state.select_folder_form[0].clone();
-                            let cyberpunk_folder_input = self.state.select_folder_form[1].clone();
+                            let mut mod_folder_input = self.state.select_folder_form[0].clone();
+                            let mut cyberpunk_folder_input = self.state.select_folder_form[1].clone();
+                            // remove " from the start and end of the string if they exist
+                            mod_folder_input = mod_folder_input.trim_start_matches('"').trim_end_matches('"').to_string();
+                            cyberpunk_folder_input = cyberpunk_folder_input.trim_start_matches('"').trim_end_matches('"').to_string();
 
                             if mod_folder_input.ends_with(NOT_A_DIRECTORY_ERROR)
                                 || cyberpunk_folder_input.ends_with(NOT_A_DIRECTORY_ERROR)
@@ -259,6 +263,10 @@ impl App {
                             self.state.ui_mode = UiMode::Explore;
                             self.state.focus = Focus::NoFocus;
                         }
+                        AppReturn::Continue
+                    }
+                    Action::LogHelp => {
+                        log_help();
                         AppReturn::Continue
                     }
                 }

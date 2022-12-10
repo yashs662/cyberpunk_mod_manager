@@ -10,10 +10,10 @@ use tui_logger::TuiLoggerWidget;
 
 use crate::{
     constants::{MIN_TERM_WIDTH, MIN_TERM_HEIGHT, ERROR_TEXT_STYLE, DEFAULT_STYLE,
-                APP_TITLE, INPUT_STYLE, FOCUS_STYLE, LIST_SELECT_STYLE, LOG_ERROR_STYLE,
+                APP_TITLE, FOCUS_STYLE, LOG_ERROR_STYLE,
                 LOG_DEBUG_STYLE, LOG_WARN_STYLE, LOG_TRACE_STYLE, LOG_INFO_STYLE,
                 MOD_FOLDER_INPUT_EMPTY_ERROR, NOT_A_DIRECTORY_ERROR, CYBERPUNK_FOLDER_INPUT_EMPTY_ERROR,
-                NOT_A_VALID_CYBERPUNK_FOLDER_ERROR
+                NOT_A_VALID_CYBERPUNK_FOLDER_ERROR, CYBERPUNK_STYLE_YELLOW, CYBERPUNK_STYLE_PINK
     },
     App, app::state::{Focus, AppStatus},
 };
@@ -61,7 +61,7 @@ pub fn draw_title<'a>() -> Paragraph<'a> {
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .style(DEFAULT_STYLE)
+                .style(CYBERPUNK_STYLE_YELLOW)
         )
 }
 
@@ -83,7 +83,7 @@ pub fn draw_select_folder<B: Backend>(f: &mut Frame<B>, app: &App) {
             ].as_ref())
         .split(f.size());
 
-    let title = Paragraph::new(Text::styled("Select Folder, Press <i> to edit and <Enter> to submit", DEFAULT_STYLE))
+    let title = Paragraph::new(Text::styled("Select Folder, Press <i> to edit, <Tab> to change focus and <Enter> to submit", DEFAULT_STYLE))
         .block(Block::default().borders(Borders::ALL))
         .style(DEFAULT_STYLE)
         .wrap(Wrap { trim: true });
@@ -91,7 +91,7 @@ pub fn draw_select_folder<B: Backend>(f: &mut Frame<B>, app: &App) {
     let mod_folder_text = app.state.select_folder_form[0].clone();
     let mod_folder_input_style = if app.state.focus == Focus::ModFolderInput {
         if app.state.status == AppStatus::UserInput {
-            INPUT_STYLE
+            CYBERPUNK_STYLE_PINK
         } else {
             FOCUS_STYLE
         }
@@ -108,7 +108,7 @@ pub fn draw_select_folder<B: Backend>(f: &mut Frame<B>, app: &App) {
     let cyberpunk_folder_text = app.state.select_folder_form[1].clone();
     let cyberpunk_folder_input_style = if app.state.focus == Focus::CyberpunkFolderInput {
         if app.state.status == AppStatus::UserInput {
-            INPUT_STYLE
+            CYBERPUNK_STYLE_PINK
         } else {
             FOCUS_STYLE
         }
@@ -169,10 +169,7 @@ pub fn draw_explore<B: Backend>(f: &mut Frame<B>, app: &App, file_list_state: &m
             ].as_ref())
         .split(main_chunks[1]);
 
-    let title_widget = Paragraph::new(Text::styled("Cyberpunk Mod Manager", DEFAULT_STYLE))
-        .block(Block::default().borders(Borders::ALL))
-        .style(DEFAULT_STYLE)
-        .wrap(Wrap { trim: true });
+    let title_widget = draw_title();
     
     let current_folder = app.selected_folder.clone().unwrap_or_else(|| PathBuf::new());
     // check if current folder is a directory if not set it to No folder selected
@@ -182,8 +179,8 @@ pub fn draw_explore<B: Backend>(f: &mut Frame<B>, app: &App, file_list_state: &m
         "No folder selected".to_string()
     };
     let current_folder_widget = Paragraph::new(Text::raw(current_folder_string))
-        .block(Block::default().borders(Borders::ALL).title("Current Folder"))
-        .style(DEFAULT_STYLE)
+        .block(Block::default().borders(Borders::ALL).title("Mod Folder"))
+        .style(CYBERPUNK_STYLE_PINK)
         .wrap(Wrap { trim: true });
 
     let cyberpunk_folder = app.cyberpunk_folder.clone().unwrap_or_else(|| PathBuf::new());
@@ -195,7 +192,7 @@ pub fn draw_explore<B: Backend>(f: &mut Frame<B>, app: &App, file_list_state: &m
     };
     let cyberpunk_folder_widget = Paragraph::new(Text::raw(cyberpunk_folder_string))
         .block(Block::default().borders(Borders::ALL).title("Cyberpunk Folder"))
-        .style(DEFAULT_STYLE)
+        .style(CYBERPUNK_STYLE_YELLOW)
         .wrap(Wrap { trim: true });
 
     // Create a list of ListItems from the list of files
@@ -211,8 +208,9 @@ pub fn draw_explore<B: Backend>(f: &mut Frame<B>, app: &App, file_list_state: &m
     // Create a List from all list items and highlight the currently selected one
     let items_list = List::new(items)
         .block(Block::default().borders(Borders::ALL).title("Available files"))
-        .highlight_style(LIST_SELECT_STYLE)
-        .highlight_symbol(">> ");
+        .highlight_style(CYBERPUNK_STYLE_PINK)
+        .highlight_symbol(">> ")
+        .style(DEFAULT_STYLE);
 
     let log_widget = TuiLoggerWidget::default()
         .style_error(LOG_ERROR_STYLE)

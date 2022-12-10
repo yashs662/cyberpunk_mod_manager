@@ -20,25 +20,13 @@ pub const ERROR_TEXT_STYLE: Style = Style {
     sub_modifier: Modifier::empty(),
 };
 pub const DEFAULT_STYLE: Style = Style{
-    fg: Some(Color::White),
+    fg: Some(Color::LightCyan),
     bg: Some(Color::Black),
     add_modifier: Modifier::empty(),
     sub_modifier: Modifier::empty(),
 };
-pub const LIST_SELECT_STYLE: Style = Style {
-    fg: Some(Color::White),
-    bg: Some(Color::LightMagenta),
-    add_modifier: Modifier::BOLD,
-    sub_modifier: Modifier::empty(),
-};
 pub const FOCUS_STYLE: Style = Style{
-    fg: Some(Color::Cyan),
-    bg: Some(Color::Black),
-    add_modifier: Modifier::BOLD,
-    sub_modifier: Modifier::empty(),
-};
-pub const INPUT_STYLE: Style = Style{
-    fg: Some(Color::LightGreen),
+    fg: Some(Color::Rgb(26, 254, 73)),
     bg: Some(Color::Black),
     add_modifier: Modifier::BOLD,
     sub_modifier: Modifier::empty(),
@@ -69,6 +57,18 @@ pub const LOG_TRACE_STYLE: Style = Style {
 };
 pub const LOG_INFO_STYLE: Style = Style {
     fg: Some(Color::LightCyan),
+    bg: Some(Color::Black),
+    add_modifier: Modifier::BOLD,
+    sub_modifier: Modifier::empty(),
+};
+pub const CYBERPUNK_STYLE_YELLOW: Style = Style {
+    fg: Some(Color::Rgb(253, 248, 0)),
+    bg: Some(Color::Black),
+    add_modifier: Modifier::BOLD,
+    sub_modifier: Modifier::empty(),
+};
+pub const CYBERPUNK_STYLE_PINK: Style = Style {
+    fg: Some(Color::Rgb(255, 0, 255)),
     bg: Some(Color::Black),
     add_modifier: Modifier::BOLD,
     sub_modifier: Modifier::empty(),

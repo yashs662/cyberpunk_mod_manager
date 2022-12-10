@@ -21,12 +21,13 @@ pub enum Action {
     TakeUserInput,
     Escape,
     Enter,
+    LogHelp
 }
 
 impl Action {
     /// All available actions
     pub fn iterator() -> Iter<'static, Action> {
-        static ACTIONS: [Action; 11] = [
+        static ACTIONS: [Action; 12] = [
             Action::Quit,
             Action::Tab,
             Action::ShiftTab,
@@ -38,6 +39,7 @@ impl Action {
             Action::TakeUserInput,
             Action::Escape,
             Action::Enter,
+            Action::LogHelp
         ];
         ACTIONS.iter()
     }
@@ -56,6 +58,7 @@ impl Action {
             Action::TakeUserInput => &[Key::Char('i')],
             Action::Escape => &[Key::Esc],
             Action::Enter => &[Key::Enter],
+            Action::LogHelp => &[Key::Char('h')]
         }
     }
 
@@ -79,6 +82,7 @@ impl Display for Action {
             Action::TakeUserInput => "Enter input mode",
             Action::Escape => "Go to previous mode",
             Action::Enter => "Accept",
+            Action::LogHelp => "Show help"
         };
         write!(f, "{}", str)
     }

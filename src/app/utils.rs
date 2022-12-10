@@ -57,13 +57,13 @@ impl<T> StatefulList<T> {
 }
 
 pub fn log_help() {
-    info!("Press 's' to select a folder");
+    info!("Press <s> to select Mod and Cyberpunk Folders");
     info!("Use UP/DOWN to navigate the list");
-    info!("Press ENTER to select a file");
-    info!("Press 'i' to enter input mode (Green Highlight)");
-    info!("Press TAB to switch between input and submit button (Blue Highlight)");
-    info!("Press 'h' to see this help message again");
-    info!("Press 'q' to quit");
+    info!("Press <Enter> to select a file");
+    info!("Press <i> to enter input mode (Green Highlight)");
+    info!("Press <Tab> to switch between input and submit button (Blue Highlight)");
+    info!("Press <h> to see this help message again");
+    info!("Press <q> to quit");
 }
 
 pub fn check_if_mod_is_valid(file_path: PathBuf) -> bool {

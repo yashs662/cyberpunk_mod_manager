@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use crate::app::App;
+use crate::app::{App, utils::log_help};
 use eyre::Result;
 use log::{
     error,
@@ -41,6 +41,7 @@ impl IoAsyncHandler {
         info!("🚀 Initialize the application");
         let mut app = self.app.lock().await;
         app.initialized(); // we could update the app state
+        log_help();
         info!("👍 Application initialized");
         Ok(())
     }
