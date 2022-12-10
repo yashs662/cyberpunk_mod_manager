@@ -16,6 +16,6 @@ The mod manager only tries to check if the mod zip file downloaded from (Prefera
 I am constantly bricking my Cyberpunk install by trying out new mods and I just wanted a quick and easy way to test mods
 
 
-# What this is not
+# Future Goals
 
 This project is just a quick and dirty utility, i am not going to maintain it regularly (might do for major bugs), contributions are welcome
