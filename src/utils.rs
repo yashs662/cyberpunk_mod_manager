@@ -59,3 +59,29 @@ pub fn check_if_mod_is_valid(file_path: PathBuf) -> bool {
     remove_dir_all(&destination).unwrap();
     is_valid
 }
+
+pub fn check_if_cyberpunk_dir_is_valid(file_path: PathBuf) -> bool {
+    let mut is_valid = false;
+    // make sure the file exists
+    if !file_path.exists() {
+        info!("{} does not exist", file_path.to_string_lossy());
+        return false;
+    }
+    for entry in WalkDir::new(&file_path) {
+        let entry = entry.unwrap();
+        let path = entry.path();
+        if path.is_dir() {
+            let dir_name = path.file_name().unwrap().to_string_lossy();
+            if dir_name == "archive" || dir_name == "bin" || dir_name == "engine" || dir_name == "mods" {
+                is_valid = true;
+                break;
+            }
+        }
+    }
+    if is_valid {
+        info!("Valid Cyberpunk 2077 directory: {}", file_path.to_string_lossy());
+    } else {
+        info!("{} is not a valid Cyberpunk 2077 directory", file_path.to_string_lossy());
+    }
+    is_valid
+}

@@ -6,12 +6,13 @@ use tui::widgets::ListState;
 pub enum Focus {
     Nothing,
     Submit,
-    Input,
+    ModFolderInput,
+    CyberpunkFolderInput
 }
 
 impl Focus {
     pub fn all() -> Vec<Focus> {
-        vec![Focus::Submit, Focus::Input]
+        vec![Focus::Submit, Focus::ModFolderInput, Focus::CyberpunkFolderInput]
     }
 
     pub fn next(&self) -> Focus {
@@ -47,6 +48,7 @@ pub enum AppMode {
 pub struct AppState {
     pub focus: Focus,
     pub current_input: String,
+    pub temp_input_store: Vec<String>,
     pub app_mode: AppMode,
     pub ui_mode: UiMode,
     pub file_list: StatefulList<(String, usize)>,
@@ -58,6 +60,7 @@ impl AppState {
         AppState {
             focus: Focus::Nothing,
             current_input: String::new(),
+            temp_input_store: vec![String::new(), String::new()],
             app_mode: AppMode::Normal,
             ui_mode: UiMode::Explore,
             file_list: StatefulList::with_items(vec![]),

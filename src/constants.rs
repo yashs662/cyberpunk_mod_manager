@@ -7,6 +7,10 @@ use tui::style::{
 pub const MIN_TERM_WIDTH: u16 = 110;
 pub const MIN_TERM_HEIGHT: u16 = 30;
 pub const APP_TITLE: &str = "Cyberpunk Mod Manager";
+pub const MOD_FOLDER_INPUT_EMPTY_ERROR: &str = "Mods Folder input is empty";
+pub const CYBERPUNK_FOLDER_INPUT_EMPTY_ERROR: &str = "Cyberpunk Folder input is empty";
+pub const NOT_A_VALID_CYBERPUNK_FOLDER_ERROR: &str = "is not a valid Cyberpunk folder";
+pub const NOT_A_DIRECTORY_ERROR: &str = "is not a directory";
 
 // Style
 pub const ERROR_TEXT_STYLE: Style = Style {

@@ -1,4 +1,5 @@
 
+use constants::{MOD_FOLDER_INPUT_EMPTY_ERROR, NOT_A_DIRECTORY_ERROR, CYBERPUNK_FOLDER_INPUT_EMPTY_ERROR, NOT_A_VALID_CYBERPUNK_FOLDER_ERROR};
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
@@ -7,8 +8,8 @@ use crossterm::{
 use cyberpunk_mod_manager::{App, AppMode, UiMode, Focus};
 use log::{LevelFilter, info, error};
 
-use ui::ui::{draw_select_folder, draw_explore};
-use utils::check_if_mod_is_valid;
+use ui::ui::{draw_select_folder, draw_explore, check_size, draw_size_error};
+use utils::{check_if_mod_is_valid, check_if_cyberpunk_dir_is_valid};
 
 use std::{
     error::Error,
@@ -85,19 +86,33 @@ fn run_app<B: Backend>(
                             break;
                         }
                     },
-                    KeyCode::Tab => app.state.focus = app.state.focus.next(),
-                    KeyCode::BackTab => app.state.focus = app.state.focus.previous(),
+                    KeyCode::Tab => {
+                        if app.state.app_mode != AppMode::Input {
+                            app.state.focus = app.state.focus.next()
+                        }
+                    },
+                    KeyCode::BackTab => {
+                        if app.state.app_mode != AppMode::Input {
+                            app.state.focus = app.state.focus.previous()
+                        }
+                    },
                     KeyCode::Char('s') => {
                         if app.state.app_mode == AppMode::Normal {
                             if app.state.ui_mode == UiMode::Explore {
-                                app.state.focus = Focus::Input;
+                                app.state.focus = Focus::ModFolderInput;
                                 app.state.ui_mode = UiMode::SelectFolder;
                             } else {
                                 app.state.focus = Focus::Nothing;
                                 app.state.ui_mode = UiMode::Explore;
                             }
                         } else if app.state.app_mode == AppMode::Input {
-                            app.state.current_input.push('s');
+                            if app.state.focus == Focus::ModFolderInput {
+                                app.state.temp_input_store[0].push('s');
+                            } else if app.state.focus == Focus::CyberpunkFolderInput {
+                                app.state.temp_input_store[1].push('s');
+                            } else {
+                                app.state.current_input.push('s');
+                            }
                         }
                     },
                     KeyCode::Char('h') => log_help(),
@@ -112,16 +127,24 @@ fn run_app<B: Backend>(
                             app.state.app_mode = AppMode::Normal;
                         }
                         if app.state.focus == Focus::Submit {
-                            let current_input = app.state.current_input.clone();
-                            // check if current input ends with is not a directory, if so do nothing
-                            if current_input.ends_with("is not a directory") {
+                            let mut mod_folder_ok = false;
+                            let mut cyberpunk_folder_ok = false;
+                            let mod_folder_input = app.state.temp_input_store[0].clone();
+                            let cyberpunk_folder_input = app.state.temp_input_store[1].clone();
+
+                            if mod_folder_input.ends_with(NOT_A_DIRECTORY_ERROR)
+                                || cyberpunk_folder_input.ends_with(NOT_A_DIRECTORY_ERROR)
+                                || cyberpunk_folder_input.ends_with(NOT_A_VALID_CYBERPUNK_FOLDER_ERROR)
+                                {
                                 continue;
                             }
-                            let input_path = Path::new(&current_input);
-                            if input_path.is_dir() {
-                                app.selected_folder = Some(input_path.to_path_buf());
+
+                            let mod_folder_path = Path::new(&mod_folder_input);
+                            let cyberpunk_folder_path = Path::new(&cyberpunk_folder_input);
+                            if mod_folder_path.is_dir() {
+                                app.selected_folder = Some(mod_folder_path.to_path_buf());
                                 let mut files = vec![];
-                                for entry in fs::read_dir(input_path)? {
+                                for entry in fs::read_dir(mod_folder_path)? {
                                     if let Ok(entry) = entry {
                                         if let Ok(metadata) = entry.metadata() {
                                             if metadata.is_file() {
@@ -131,12 +154,39 @@ fn run_app<B: Backend>(
                                     }
                                 }
                                 app.state.file_list.items = files;
-                                // clear input
-                                app.state.current_input = String::new();
+                                mod_folder_ok = true;
+                            } else {
+                                // check if input is empty, put error message in temp input store
+                                if mod_folder_input.trim().is_empty() {
+                                    app.state.temp_input_store[0] = MOD_FOLDER_INPUT_EMPTY_ERROR.to_string();
+                                } else if !app.state.temp_input_store[0].contains(MOD_FOLDER_INPUT_EMPTY_ERROR) {
+                                    app.state.temp_input_store[0] = format!("{} {}", mod_folder_input, NOT_A_DIRECTORY_ERROR);
+                                }
+                            }
+                            if cyberpunk_folder_path.is_dir() {
+                                if !check_if_cyberpunk_dir_is_valid(cyberpunk_folder_path.clone().to_path_buf()) {
+                                    app.state.temp_input_store[1] = format!("{} {}", cyberpunk_folder_input, NOT_A_VALID_CYBERPUNK_FOLDER_ERROR);
+                                    continue;
+                                } else {
+                                    app.cyberpunk_folder = Some(cyberpunk_folder_path.to_path_buf());
+                                    cyberpunk_folder_ok = true;
+                                }
+                            } else {
+                                // check if input is empty, put error message in temp input store
+                                if cyberpunk_folder_input.trim().is_empty() {
+                                    app.state.temp_input_store[1] = CYBERPUNK_FOLDER_INPUT_EMPTY_ERROR.to_string();
+                                } else if !app.state.temp_input_store[1].contains(CYBERPUNK_FOLDER_INPUT_EMPTY_ERROR)
+                                    || !app.state.temp_input_store[1].contains(NOT_A_VALID_CYBERPUNK_FOLDER_ERROR)
+                                    {
+                                    app.state.temp_input_store[1] = format!("{} {}", cyberpunk_folder_input, NOT_A_DIRECTORY_ERROR);
+                                }
+                            }
+                            if mod_folder_ok && cyberpunk_folder_ok {
                                 app.state.ui_mode = UiMode::Explore;
                                 app.state.focus = Focus::Nothing;
-                            } else {
-                                app.state.current_input = format!("{} is not a directory", current_input)
+                                // clear temp input store
+                                app.state.temp_input_store[0] = String::new();
+                                app.state.temp_input_store[1] = String::new();
                             }
                         }
                         if app.state.ui_mode == UiMode::Explore {
@@ -150,15 +200,27 @@ fn run_app<B: Backend>(
                         }
                     }
                     KeyCode::Char('i') => {
-                        if app.state.focus == Focus::Input {
-                            // check if app.state.current_input ends with "is not a directory" if so, remove it
-                            if app.state.current_input.ends_with("is not a directory") {
-                                app.state.current_input = app.state.current_input.replace("is not a directory", "");
-                                // trim whitespace
-                                app.state.current_input = app.state.current_input.trim().to_string();
+                        if app.state.focus == Focus::ModFolderInput {
+                            if app.state.temp_input_store[0].ends_with(NOT_A_DIRECTORY_ERROR) {
+                                app.state.temp_input_store[0] = app.state.temp_input_store[0]
+                                    .replace(NOT_A_DIRECTORY_ERROR, "").trim().to_string();
+                            } else if app.state.temp_input_store[0].ends_with(MOD_FOLDER_INPUT_EMPTY_ERROR) {
+                                app.state.temp_input_store[0] = app.state.temp_input_store[0]
+                                    .replace(MOD_FOLDER_INPUT_EMPTY_ERROR, "").trim().to_string();
                             }
-                            app.state.app_mode = AppMode::Input;
+                        } else if app.state.focus == Focus::CyberpunkFolderInput {
+                            if app.state.temp_input_store[1].ends_with(NOT_A_DIRECTORY_ERROR) {
+                                app.state.temp_input_store[1] = app.state.temp_input_store[1]
+                                    .replace(NOT_A_DIRECTORY_ERROR, "").trim().to_string();
+                            } else if app.state.temp_input_store[1].ends_with(CYBERPUNK_FOLDER_INPUT_EMPTY_ERROR) {
+                                app.state.temp_input_store[1] = app.state.temp_input_store[1]
+                                    .replace(CYBERPUNK_FOLDER_INPUT_EMPTY_ERROR, "").trim().to_string();
+                            } else if app.state.temp_input_store[1].ends_with(NOT_A_VALID_CYBERPUNK_FOLDER_ERROR) {
+                                app.state.temp_input_store[1] = app.state.temp_input_store[1]
+                                    .replace(NOT_A_VALID_CYBERPUNK_FOLDER_ERROR, "").trim().to_string();
+                            }
                         }
+                        app.state.app_mode = AppMode::Input;
                     }
                     KeyCode::Esc => {
                         if app.state.app_mode == AppMode::Input {
@@ -166,13 +228,21 @@ fn run_app<B: Backend>(
                         }
                     }
                     _ => {
-                        if app.state.app_mode == AppMode::Input && app.state.focus == Focus::Input {
+                        if app.state.app_mode == AppMode::Input && app.state.focus == Focus::ModFolderInput {
                             // if backspace, remove last char
                             if key.code == KeyCode::Backspace {
-                                app.state.current_input.pop();
+                                app.state.temp_input_store[0].pop();
                             }
                             if let KeyCode::Char(c) = key.code {
-                                app.state.current_input.push(c);
+                                app.state.temp_input_store[0].push(c);
+                            }
+                        } else if app.state.app_mode == AppMode::Input && app.state.focus == Focus::CyberpunkFolderInput {
+                            // if backspace, remove last char
+                            if key.code == KeyCode::Backspace {
+                                app.state.temp_input_store[1].pop();
+                            }
+                            if let KeyCode::Char(c) = key.code {
+                                app.state.temp_input_store[1].push(c);
                             }
                         }
                     }
@@ -187,6 +257,12 @@ fn run_app<B: Backend>(
 }
 
 fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+    let msg = check_size(&f.size());
+    if &msg != "Size OK" {
+        draw_size_error(f, &f.size(), msg);
+        return;
+    }
+    
     match app.state.ui_mode {
         UiMode::SelectFolder => draw_select_folder(f, app),
         UiMode::Explore => draw_explore(f, app)
