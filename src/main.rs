@@ -1,4 +1,4 @@
-use compress_tools::{uncompress_archive, Ownership};
+
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
@@ -9,11 +9,11 @@ use log::{LevelFilter, info, error};
 
 use ui::ui::{draw_select_folder, draw_explore};
 use utils::check_if_mod_is_valid;
-use walkdir::WalkDir;
+
 use std::{
     error::Error,
     io,
-    time::{Duration, Instant}, path::{PathBuf, Path}, fs::{self, File, create_dir_all, remove_dir_all}, env::temp_dir,
+    time::{Duration, Instant}, path::{Path}, fs::{self},
 };
 use tui::{
     backend::{Backend, CrosstermBackend},
