@@ -19,3 +19,6 @@ I am constantly bricking my Cyberpunk install by trying out new mods and I just 
 # Future Goals
 
 This project is just a quick and dirty utility, i am not going to maintain it regularly (might do for major bugs), contributions are welcome
+
+# Screenshots
+![cyberpunk_mod_manager](https://user-images.githubusercontent.com/66156000/206888889-d92e3fc5-1cb0-4606-af34-b08ad1f6accb.png)
