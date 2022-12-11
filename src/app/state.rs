@@ -138,7 +138,7 @@ pub struct AppState {
     pub select_folder_form: Vec<String>,
     pub ui_mode: UiMode,
     pub file_list: StatefulList<(String, usize)>,
-    
+    pub mod_options: StatefulList<String>,
 }
 
 impl Default for AppState {
@@ -150,6 +150,7 @@ impl Default for AppState {
             select_folder_form: vec![String::new(), String::new()],
             ui_mode: UiMode::Explore,
             file_list: StatefulList::with_items(vec![]),
+            mod_options: StatefulList::with_items(vec![]),
         }
     }
 }

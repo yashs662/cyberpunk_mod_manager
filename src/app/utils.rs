@@ -2,8 +2,11 @@ use std::{path::PathBuf, env::temp_dir, fs::{create_dir_all, File, remove_dir_al
 
 use compress_tools::{uncompress_archive, Ownership};
 use log::{info, error};
+use serde::{Serialize, Deserialize};
 use tui::widgets::ListState;
 use walkdir::WalkDir;
+
+use crate::constants::WORKING_DIR_NAME;
 
 #[derive(Debug, Clone)]
 pub struct StatefulList<T> {
@@ -56,13 +59,74 @@ impl<T> StatefulList<T> {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum ModOptions {
+    Install,
+    Uninstall,
+}
+
+impl ModOptions {
+    pub fn get_all_options() -> Vec<ModOptions> {
+        vec![ModOptions::Install, ModOptions::Uninstall]
+    }
+
+    pub fn to_string(&self) -> String {
+        match self {
+            ModOptions::Install => "Install".to_string(),
+            ModOptions::Uninstall => "Uninstall".to_string(),
+        }
+    }
+
+    pub fn get_option_from_string(option: &str) -> Option<ModOptions> {
+        match option {
+            "Install" => Some(ModOptions::Install),
+            "Uninstall" => Some(ModOptions::Uninstall),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ModPopup {
+    pub mod_name: String,
+    pub mod_install_status: Option<bool>,
+}
+
+impl ModPopup {
+    pub fn new(mod_name: String) -> Self {
+        Self {
+            mod_name,
+            mod_install_status: None,
+        }
+    }
+
+    pub fn get_mod_name(&self) -> &str {
+        &self.mod_name
+    }
+
+    pub fn get_mod_install_status(&self) -> Option<bool> {
+        self.mod_install_status
+    }
+
+    pub fn set_mod_install_status(&mut self, status: bool) {
+        self.mod_install_status = Some(status);
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Settings {
+    pub cyberpunk_folder: Option<PathBuf>,
+    pub mod_folder: Option<PathBuf>,
+}
+
 pub fn log_help() {
-    info!("Press <s> to select Mod and Cyberpunk Folders");
+    info!("Press <f> to select Mod and Cyberpunk Folders");
     info!("Use UP/DOWN to navigate the list");
     info!("Press <Enter> to select a file");
     info!("Press <i> to enter input mode (Green Highlight)");
     info!("Press <Tab> to switch between input and submit button (Blue Highlight)");
     info!("Press <h> to see this help message again");
+    info!("Press <Ctrl + s> to save settings");
     info!("Press <q> to quit");
 }
 
@@ -75,7 +139,7 @@ pub fn check_if_mod_is_valid(file_path: PathBuf) -> bool {
     }
     let mut destination = temp_dir();
     // make a cyberpunk_mod_manager directory in the temp directory
-    destination.push("cyberpunk_mod_manager");
+    destination.push(WORKING_DIR_NAME);
     // make a directory with the name of the file
     destination.push(file_path.file_name().unwrap());
     // create the directory
@@ -93,7 +157,7 @@ pub fn check_if_mod_is_valid(file_path: PathBuf) -> bool {
         let path = entry.path();
         if path.is_dir() {
             let dir_name = path.file_name().unwrap().to_string_lossy();
-            if dir_name == "archive" || dir_name == "bin" || dir_name == "engine" || dir_name == "mods" {
+            if dir_name == "archive" || dir_name == "bin" || dir_name == "engine" || dir_name == "mods" || dir_name == "red4ext" || dir_name == "r6"{
                 is_valid = true;
             }
         }

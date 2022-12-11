@@ -4,6 +4,9 @@ use tui::style::{
     Modifier
 };
 
+pub const WORKING_DIR_NAME: &str = "cyberpunk_mod_manager";
+pub const SAVE_DIR_NAME: &str = "cyberpunk_mod_manager";
+pub const SAVE_FILE_NAME: &str = "cyberpunk_mod_manager.json";
 pub const MIN_TERM_WIDTH: u16 = 110;
 pub const MIN_TERM_HEIGHT: u16 = 30;
 pub const APP_TITLE: &str = "Cyberpunk Mod Manager";
@@ -61,14 +64,32 @@ pub const CYBERPUNK_STYLE_YELLOW: Style = Style {
     add_modifier: Modifier::BOLD,
     sub_modifier: Modifier::empty(),
 };
+pub const CYBERPUNK_STYLE_YELLOW_DARK: Style = Style {
+    fg: Some(Color::Rgb(133, 128, 0)),
+    bg: Some(Color::Black),
+    add_modifier: Modifier::BOLD,
+    sub_modifier: Modifier::empty(),
+};
 pub const CYBERPUNK_STYLE_PINK: Style = Style {
     fg: Some(Color::Rgb(255, 0, 255)),
     bg: Some(Color::Black),
     add_modifier: Modifier::BOLD,
     sub_modifier: Modifier::empty(),
 };
+pub const CYBERPUNK_STYLE_PINK_DARK: Style = Style {
+    fg: Some(Color::Rgb(135, 0, 135)),
+    bg: Some(Color::Black),
+    add_modifier: Modifier::BOLD,
+    sub_modifier: Modifier::empty(),
+};
 pub const CYBERPUNK_STYLE_CYAN: Style = Style {
     fg: Some(Color::Rgb(0, 255, 255)),
+    bg: Some(Color::Black),
+    add_modifier: Modifier::BOLD,
+    sub_modifier: Modifier::empty(),
+};
+pub const CYBERPUNK_STYLE_CYAN_DARK: Style = Style {
+    fg: Some(Color::Rgb(0, 135, 135)),
     bg: Some(Color::Black),
     add_modifier: Modifier::BOLD,
     sub_modifier: Modifier::empty(),

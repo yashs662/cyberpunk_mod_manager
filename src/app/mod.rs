@@ -1,8 +1,7 @@
-use std::fs;
 use std::path::Path;
 use std::vec;
 use std::path::PathBuf;
-use log::debug;
+use log::{debug, info};
 use log::{
     error,
     warn
@@ -13,7 +12,7 @@ use self::state::AppState;
 use self::state::AppStatus;
 use self::state::Focus;
 use self::state::UiMode;
-use self::utils::check_if_cyberpunk_dir_is_valid;
+use self::utils::{ModPopup, ModOptions};
 use self::utils::check_if_mod_is_valid;
 use self::utils::log_help;
 use crate::app::actions::Action;
@@ -39,8 +38,9 @@ pub struct App {
     io_tx: tokio::sync::mpsc::Sender<IoEvent>,
     actions: Actions,
     is_loading: bool,
+    pub mod_popup: Option<ModPopup>,
     pub state: AppState,
-    pub selected_folder: Option<PathBuf>,
+    pub mod_folder: Option<PathBuf>,
     pub cyberpunk_folder: Option<PathBuf>,
 }
 
@@ -49,14 +49,15 @@ impl App {
         let actions = vec![Action::Quit].into();
         let is_loading = false;
         let state = AppState::default();
-
+        let mod_popup = None;
 
         Self {
             io_tx,
             actions,
             is_loading,
+            mod_popup,
             state,
-            selected_folder: None,
+            mod_folder: None,
             cyberpunk_folder: None,
         }
     }
@@ -126,11 +127,19 @@ impl App {
                         AppReturn::Continue
                     }
                     Action::Up => {
-                        self.state.file_list.previous();
+                        if self.mod_popup.is_some() {
+                            self.state.mod_options.previous();
+                        } else {
+                            self.state.file_list.previous()
+                        }
                         AppReturn::Continue
                     }
                     Action::Down => {
-                        self.state.file_list.next();
+                        if self.mod_popup.is_some() {
+                            self.state.mod_options.next();
+                        } else {
+                            self.state.file_list.next()
+                        }
                         AppReturn::Continue
                     }
                     Action::Right => {
@@ -172,6 +181,9 @@ impl App {
                         if self.state.status == AppStatus::UserInput {
                             self.state.status = AppStatus::Initialized;
                         }
+                        if self.mod_popup.is_some() {
+                            self.mod_popup = None;
+                        }
                         AppReturn::Continue
                     }
                     Action::Enter => {
@@ -179,77 +191,34 @@ impl App {
                             self.state.status = AppStatus::Initialized;
                         }
                         if self.state.focus == Focus::Submit {
-                            let mut mod_folder_ok = false;
-                            let mut cyberpunk_folder_ok = false;
-                            let mut mod_folder_input = self.state.select_folder_form[0].clone();
-                            let mut cyberpunk_folder_input = self.state.select_folder_form[1].clone();
-                            // remove " from the start and end of the string if they exist
-                            mod_folder_input = mod_folder_input.trim_start_matches('"').trim_end_matches('"').to_string();
-                            cyberpunk_folder_input = cyberpunk_folder_input.trim_start_matches('"').trim_end_matches('"').to_string();
-
-                            if mod_folder_input.ends_with(NOT_A_DIRECTORY_ERROR)
-                                || cyberpunk_folder_input.ends_with(NOT_A_DIRECTORY_ERROR)
-                                || cyberpunk_folder_input.ends_with(NOT_A_VALID_CYBERPUNK_FOLDER_ERROR)
-                                {
-                                return AppReturn::Continue;
-                            }
-
-                            let mod_folder_path = Path::new(&mod_folder_input);
-                            let cyberpunk_folder_path = Path::new(&cyberpunk_folder_input);
-                            if mod_folder_path.is_dir() {
-                                self.selected_folder = Some(mod_folder_path.to_path_buf());
-                                let mut files = vec![];
-                                for entry in fs::read_dir(mod_folder_path).unwrap() {
-                                    if let Ok(entry) = entry {
-                                        if let Ok(metadata) = entry.metadata() {
-                                            if metadata.is_file() {
-                                                files.push((entry.file_name().to_string_lossy().to_string(), metadata.len() as usize));
-                                            }
+                            self.dispatch(IoEvent::LoadMods).await;
+                        }
+                        if self.state.ui_mode == UiMode::Explore {
+                            if self.mod_popup.is_some() {
+                                let current_selected_option_index = self.state.mod_options.state.selected();
+                                let available_options = ModOptions::get_all_options();
+                                if let Some(selected_option_index) = current_selected_option_index {
+                                    let selected_option = available_options[selected_option_index].clone();
+                                    match selected_option {
+                                        ModOptions::Install => {
+                                            self.dispatch(IoEvent::InstallMod).await;
+                                        }
+                                        ModOptions::Uninstall => {
+                                            self.dispatch(IoEvent::UninstallMod).await;
                                         }
                                     }
                                 }
-                                self.state.file_list.items = files;
-                                mod_folder_ok = true;
-                            } else {
-                                // check if input is empty, put error message in temp input store
-                                if mod_folder_input.trim().is_empty() {
-                                    self.state.select_folder_form[0] = MOD_FOLDER_INPUT_EMPTY_ERROR.to_string();
-                                } else if !self.state.select_folder_form[0].contains(MOD_FOLDER_INPUT_EMPTY_ERROR) {
-                                    self.state.select_folder_form[0] = format!("{} {}", mod_folder_input, NOT_A_DIRECTORY_ERROR);
-                                }
                             }
-                            if cyberpunk_folder_path.is_dir() {
-                                if !check_if_cyberpunk_dir_is_valid(cyberpunk_folder_path.clone().to_path_buf()) {
-                                    self.state.select_folder_form[1] = format!("{} {}", cyberpunk_folder_input, NOT_A_VALID_CYBERPUNK_FOLDER_ERROR);
-                                    return AppReturn::Continue;
-                                } else {
-                                    self.cyberpunk_folder = Some(cyberpunk_folder_path.to_path_buf());
-                                    cyberpunk_folder_ok = true;
-                                }
-                            } else {
-                                // check if input is empty, put error message in temp input store
-                                if cyberpunk_folder_input.trim().is_empty() {
-                                    self.state.select_folder_form[1] = CYBERPUNK_FOLDER_INPUT_EMPTY_ERROR.to_string();
-                                } else if !self.state.select_folder_form[1].contains(CYBERPUNK_FOLDER_INPUT_EMPTY_ERROR)
-                                    || !self.state.select_folder_form[1].contains(NOT_A_VALID_CYBERPUNK_FOLDER_ERROR)
-                                    {
-                                    self.state.select_folder_form[1] = format!("{} {}", cyberpunk_folder_input, NOT_A_DIRECTORY_ERROR);
-                                }
-                            }
-                            if mod_folder_ok && cyberpunk_folder_ok {
-                                self.state.ui_mode = UiMode::Explore;
-                                self.state.focus = Focus::NoFocus;
-                                // clear temp input store
-                                self.state.select_folder_form[0] = String::new();
-                                self.state.select_folder_form[1] = String::new();
-                            }
-                        }
-                        if self.state.ui_mode == UiMode::Explore {
-                            if let Some(selected) = self.state.file_list.state.selected() {
+                            else if let Some(selected) = self.state.file_list.state.selected() {
                                 let selected_file = self.state.file_list.items[selected].0.clone();
-                                let selected_file_path = Path::new(&self.selected_folder.as_ref().unwrap()).join(selected_file);
+                                let selected_file_path = Path::new(&self.mod_folder.as_ref().unwrap()).join(&selected_file);
                                 if !check_if_mod_is_valid(selected_file_path.clone()) {
                                     error!("{} is not a valid mod", selected_file_path.to_string_lossy());
+                                } else {
+                                    info!("Selected mod: {}", selected_file_path.to_string_lossy());
+                                    self.mod_popup = Some(ModPopup::new(selected_file.clone()));
+                                    self.dispatch(IoEvent::CheckIfModIsInstalled).await;
+                                    info!("popup: {:?}", self.mod_popup);
                                 }
                             }
                         }
@@ -267,6 +236,10 @@ impl App {
                     }
                     Action::LogHelp => {
                         log_help();
+                        AppReturn::Continue
+                    }
+                    Action::SaveSettings => {
+                        self.dispatch(IoEvent::SaveSettings).await;
                         AppReturn::Continue
                     }
                 }
