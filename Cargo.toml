@@ -1,7 +1,11 @@
 [package]
 name = "cyberpunk_mod_manager"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2021"
+authors = ["Yash Sharma <yashs662@gmail.com>"]
+description = "A mod manager for Cyberpunk 2077"
+repository = "https://github.com/yashs662/cyberpunk_mod_manager"
+license = "GNU General Public License v3.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

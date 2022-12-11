@@ -211,6 +211,27 @@ impl IoAsyncHandler {
                     }
                 }
             }
+            // iterate again and remove empty directories
+            for entry in WalkDir::new(&temp_mod_path) {
+                let entry = entry?;
+                let path = entry.path();
+                // remove mod_path from the start of the path
+                let dir_name = path
+                    .strip_prefix(&temp_mod_path)
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .to_string();
+                let dest_path = cyberpunk_dir.join(dir_name);
+                if dest_path.exists() {
+                    if dest_path.is_dir() {
+                        if dest_path.read_dir()?.next().is_none() {
+                            debug!("🚀 Removing {}", &dest_path.to_str().unwrap());
+                            fs::remove_dir(dest_path)?;
+                        }
+                    }
+                }
+            }
         }
         info!("👍 Mod uninstalled");
         Ok(())

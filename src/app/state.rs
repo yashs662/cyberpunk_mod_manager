@@ -139,6 +139,7 @@ pub struct AppState {
     pub ui_mode: UiMode,
     pub file_list: StatefulList<(String, usize)>,
     pub mod_options: StatefulList<String>,
+    pub cursor_position: Option<usize>
 }
 
 impl Default for AppState {
@@ -152,6 +153,7 @@ impl Default for AppState {
             ui_mode: UiMode::Explore,
             file_list: StatefulList::with_items(vec![]),
             mod_options: StatefulList::with_items(mod_options_list),
+            cursor_position: None
         }
     }
 }

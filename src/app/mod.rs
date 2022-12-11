@@ -77,21 +77,122 @@ impl App {
                     current_key = "  ".to_string();
                 } else if current_key == "<Backspace>" {
                     match self.state.focus {
-                        Focus::ModFolderInput => self.state.select_folder_form[0].pop(),
-                        Focus::CyberpunkFolderInput => self.state.select_folder_form[1].pop(),
-                        _ => self.state.current_input.pop(),
+                        Focus::ModFolderInput => {
+                            let cursor_position = self.state.cursor_position.unwrap_or_else(||0);
+                            if cursor_position > 0 {
+                                self.state.select_folder_form[0].remove(cursor_position - 1);
+                                self.state.cursor_position = Some(cursor_position - 1);
+                            } else {
+                                self.state.select_folder_form[0].remove(0);
+                            }
+                        },
+                        Focus::CyberpunkFolderInput => {
+                            let cursor_position = self.state.cursor_position.unwrap_or_else(||0);
+                            if cursor_position > 0 {
+                                self.state.select_folder_form[1].remove(cursor_position - 1);
+                                self.state.cursor_position = Some(cursor_position - 1);
+                            } else {
+                                self.state.select_folder_form[1].remove(0);
+                            }
+                        },
+                        _ => {
+                            let cursor_position = self.state.cursor_position.unwrap_or_else(||0);
+                            if cursor_position > 0 {
+                                self.state.current_input.remove(cursor_position - 1);
+                                self.state.cursor_position = Some(cursor_position - 1);
+                            } else {
+                                self.state.current_input.remove(0);
+                            }
+                        }
                     };
-                    return AppReturn::Continue;
+                    current_key = "".to_string();
+                // check for Left and right
+                } else if current_key == "<Left>" {
+                    match self.state.focus {
+                        Focus::ModFolderInput => {
+                            let cursor_position = self.state.cursor_position.unwrap_or_else(||0);
+                            if cursor_position > 0 {
+                                self.state.cursor_position = Some(cursor_position - 1);
+                            }
+                        },
+                        Focus::CyberpunkFolderInput => {
+                            let cursor_position = self.state.cursor_position.unwrap_or_else(||0);
+                            if cursor_position > 0 {
+                                self.state.cursor_position = Some(cursor_position - 1);
+                            }
+                        },
+                        _ => {
+                            let cursor_position = self.state.cursor_position.unwrap_or_else(||0);
+                            if cursor_position > 0 {
+                                self.state.cursor_position = Some(cursor_position - 1);
+                            }
+                        }
+                    };
+                    current_key = "".to_string();
+                } else if current_key == "<Right>" {
+                    match self.state.focus {
+                        Focus::ModFolderInput => {
+                            let cursor_position = self.state.cursor_position.unwrap_or_else(||0);
+                            if cursor_position < self.state.select_folder_form[0].len() {
+                                self.state.cursor_position = Some(cursor_position + 1);
+                            }
+                        },
+                        Focus::CyberpunkFolderInput => {
+                            let cursor_position = self.state.cursor_position.unwrap_or_else(||0);
+                            if cursor_position < self.state.select_folder_form[1].len() {
+                                self.state.cursor_position = Some(cursor_position + 1);
+                            }
+                        },
+                        _ => {
+                            let cursor_position = self.state.cursor_position.unwrap_or_else(||0);
+                            if cursor_position < self.state.current_input.len() {
+                                self.state.cursor_position = Some(cursor_position + 1);
+                            }
+                        }
+                    };
+                    current_key = "".to_string();
+                } else if current_key == "<Home>" {
+                    match self.state.focus {
+                        Focus::ModFolderInput => {
+                            self.state.cursor_position = Some(0);
+                        },
+                        Focus::CyberpunkFolderInput => {
+                            self.state.cursor_position = Some(0);
+                        },
+                        _ => {
+                            self.state.cursor_position = Some(0);
+                        }
+                    };
+                    current_key = "".to_string();
+                } else if current_key == "<End>" {
+                    match self.state.focus {
+                        Focus::ModFolderInput => {
+                            self.state.cursor_position = Some(self.state.select_folder_form[0].len());
+                        },
+                        Focus::CyberpunkFolderInput => {
+                            self.state.cursor_position = Some(self.state.select_folder_form[1].len());
+                        },
+                        _ => {
+                            self.state.cursor_position = Some(self.state.current_input.len());
+                        }
+                    };
+                    current_key = "".to_string();
                 } else if current_key.starts_with("<") && current_key.ends_with(">") {
                     current_key = current_key[1..current_key.len() - 1].to_string();
                 }
 
-                if self.state.focus == Focus::ModFolderInput {
-                    self.state.select_folder_form[0].push_str(&current_key);
-                } else if self.state.focus == Focus::CyberpunkFolderInput {
-                    self.state.select_folder_form[1].push_str(&current_key);
-                } else {
-                    self.state.current_input.push_str(&current_key);
+                if self.state.focus == Focus::ModFolderInput && current_key != "" {
+                    let cursor_position = self.state.cursor_position.unwrap_or_else(||0);
+                    self.state.select_folder_form[0].insert(cursor_position, current_key.chars().next().unwrap());
+                    self.state.cursor_position = Some(cursor_position + 1);
+                } else if self.state.focus == Focus::CyberpunkFolderInput && current_key != "" {
+                    let cursor_position = self.state.cursor_position.unwrap_or_else(||0);
+                    self.state.select_folder_form[1].insert(cursor_position, current_key.chars().next().unwrap());
+                    self.state.cursor_position = Some(cursor_position + 1);
+                } else if current_key != "" {
+                    let cursor_position = self.state.cursor_position.unwrap_or_else(||0);
+                    self.state.current_input.insert(cursor_position, current_key.chars().next().unwrap());
+                    self.state.cursor_position = Some(cursor_position + 1);
                 }
             } else {
                 self.state.status = AppStatus::Initialized;
@@ -143,9 +244,39 @@ impl App {
                         AppReturn::Continue
                     }
                     Action::Right => {
+                        if self.state.status == AppStatus::UserInput {
+                            if self.state.focus == Focus::ModFolderInput {
+                                let cursor_position = self.state.cursor_position.unwrap_or_else(||0);
+                                self.state.cursor_position = Some((cursor_position + 1).min(self.state.select_folder_form[0].len()));
+                            } else if self.state.focus == Focus::CyberpunkFolderInput {
+                                let cursor_position = self.state.cursor_position.unwrap_or_else(||0);
+                                self.state.cursor_position = Some((cursor_position + 1).min(self.state.select_folder_form[1].len()));
+                            } else {
+                                let cursor_position = self.state.cursor_position.unwrap_or_else(||0);
+                                self.state.cursor_position = Some((cursor_position + 1).min(self.state.current_input.len()));
+                            }
+                        }
                         AppReturn::Continue
                     }
                     Action::Left => {
+                        if self.state.status == AppStatus::UserInput {
+                            if self.state.focus == Focus::ModFolderInput {
+                                let cursor_position = self.state.cursor_position.unwrap_or_else(||0);
+                                if cursor_position > 0 {
+                                    self.state.cursor_position = Some(cursor_position - 1);
+                                }
+                            } else if self.state.focus == Focus::CyberpunkFolderInput {
+                                let cursor_position = self.state.cursor_position.unwrap_or_else(||0);
+                                if cursor_position > 0 {
+                                    self.state.cursor_position = Some(cursor_position - 1);
+                                }
+                            } else {
+                                let cursor_position = self.state.cursor_position.unwrap_or_else(||0);
+                                if cursor_position > 0 {
+                                    self.state.cursor_position = Some(cursor_position - 1);
+                                }
+                            }
+                        }
                         AppReturn::Continue
                     }
                     Action::TakeUserInput => {
@@ -160,6 +291,8 @@ impl App {
                                         self.state.select_folder_form[0] = self.state.select_folder_form[0]
                                             .replace(MOD_FOLDER_INPUT_EMPTY_ERROR, "").trim().to_string();
                                     }
+                                    // ensure the cursor is at the end of the string
+                                    self.state.cursor_position = Some(self.state.select_folder_form[0].len());
                                 } else if self.state.focus == Focus::CyberpunkFolderInput {
                                     if self.state.select_folder_form[1].ends_with(NOT_A_DIRECTORY_ERROR) {
                                         self.state.select_folder_form[1] = self.state.select_folder_form[1]
@@ -171,6 +304,8 @@ impl App {
                                         self.state.select_folder_form[1] = self.state.select_folder_form[1]
                                             .replace(NOT_A_VALID_CYBERPUNK_FOLDER_ERROR, "").trim().to_string();
                                     }
+                                    // ensure the cursor is at the end of the string
+                                    self.state.cursor_position = Some(self.state.select_folder_form[1].len());
                                 }
                             }
                             _ => {}
@@ -180,15 +315,24 @@ impl App {
                     Action::Escape => {
                         if self.state.status == AppStatus::UserInput {
                             self.state.status = AppStatus::Initialized;
+                            self.state.cursor_position = None;
+                        } else if self.state.status == AppStatus::Initialized {
+                            if self.state.ui_mode == UiMode::SelectFolder {
+                                self.state.ui_mode = UiMode::Explore;
+                            } else if self.state.ui_mode == UiMode::Explore {
+                                return AppReturn::Exit;
+                            }
                         }
                         if self.mod_popup.is_some() {
                             self.mod_popup = None;
                         }
+                        
                         AppReturn::Continue
                     }
                     Action::Enter => {
                         if self.state.status == AppStatus::UserInput {
                             self.state.status = AppStatus::Initialized;
+                            self.state.cursor_position = None;
                         }
                         if self.state.focus == Focus::Submit {
                             self.dispatch(IoEvent::LoadMods).await;
@@ -231,6 +375,13 @@ impl App {
                     Action::SelectFolder => {
                         if self.state.ui_mode != UiMode::SelectFolder {
                             self.state.ui_mode = UiMode::SelectFolder;
+                            // if mod_folder or cyberpunk_folder is set, set the input value to the current value
+                            if let Some(mod_folder) = &self.mod_folder {
+                                self.state.select_folder_form[0] = mod_folder.clone().to_string_lossy().to_string();
+                            }
+                            if let Some(cyberpunk_folder) = &self.cyberpunk_folder {
+                                self.state.select_folder_form[1] = cyberpunk_folder.clone().to_string_lossy().to_string();
+                            }
                             self.state.focus = Focus::ModFolderInput;
                         } else {
                             self.state.ui_mode = UiMode::Explore;

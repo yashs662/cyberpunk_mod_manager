@@ -142,12 +142,12 @@ pub fn draw_select_folder<B: Backend>(f: &mut Frame<B>, app: &App) {
     // check if input mode is active, if so, show cursor
     if app.state.status == AppStatus::UserInput && app.state.focus == Focus::ModFolderInput {
         f.set_cursor(
-            chunks[1].x + app.state.select_folder_form[0].len() as u16 + 1,
+            chunks[1].x + app.state.cursor_position.unwrap_or_else(||0) as u16 + 1,
             chunks[1].y + 1,
         );
     } else if app.state.status == AppStatus::UserInput && app.state.focus == Focus::CyberpunkFolderInput {
         f.set_cursor(
-            chunks[2].x + app.state.select_folder_form[1].len() as u16 + 1,
+            chunks[2].x + app.state.cursor_position.unwrap_or_else(||0) as u16 + 1,
             chunks[2].y + 1,
         );
     }
