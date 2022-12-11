@@ -63,17 +63,33 @@ impl<T> StatefulList<T> {
 pub enum ModOptions {
     Install,
     Uninstall,
+    Repair
 }
 
 impl ModOptions {
     pub fn get_all_options() -> Vec<ModOptions> {
-        vec![ModOptions::Install, ModOptions::Uninstall]
+        vec![
+            ModOptions::Install,
+            ModOptions::Uninstall,
+            ModOptions::Repair,
+        ]
+    }
+
+    pub fn get_all_options_as_listitems() -> Vec<String> {
+        let all_options = ModOptions::get_all_options();
+        all_options
+        .iter()
+        .map(|mod_option| {
+            mod_option.to_string()
+        })
+        .collect()
     }
 
     pub fn to_string(&self) -> String {
         match self {
             ModOptions::Install => "Install".to_string(),
             ModOptions::Uninstall => "Uninstall".to_string(),
+            ModOptions::Repair => "Repair".to_string(),
         }
     }
 
@@ -81,6 +97,7 @@ impl ModOptions {
         match option {
             "Install" => Some(ModOptions::Install),
             "Uninstall" => Some(ModOptions::Uninstall),
+            "Repair" => Some(ModOptions::Repair),
             _ => None,
         }
     }
@@ -127,6 +144,7 @@ pub fn log_help() {
     info!("Press <Tab> to switch between input and submit button (Blue Highlight)");
     info!("Press <h> to see this help message again");
     info!("Press <Ctrl + s> to save settings");
+    info!("Press <Esc> to exit input mode or close popup");
     info!("Press <q> to quit");
 }
 

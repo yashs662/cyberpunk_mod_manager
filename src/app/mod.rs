@@ -206,6 +206,10 @@ impl App {
                                         ModOptions::Uninstall => {
                                             self.dispatch(IoEvent::UninstallMod).await;
                                         }
+                                        ModOptions::Repair => {
+                                            self.dispatch(IoEvent::UninstallMod).await;
+                                            self.dispatch(IoEvent::InstallMod).await;
+                                        }
                                     }
                                 }
                             }
@@ -230,6 +234,10 @@ impl App {
                             self.state.focus = Focus::ModFolderInput;
                         } else {
                             self.state.ui_mode = UiMode::Explore;
+                            // check if state.file_list has any selected items
+                            if self.state.file_list.state.selected().is_none() {
+                                self.state.file_list.next();
+                            }
                             self.state.focus = Focus::NoFocus;
                         }
                         AppReturn::Continue

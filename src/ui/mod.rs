@@ -2,9 +2,9 @@ pub mod ui;
 use tui::backend::Backend;
 use tui::Frame;
 
-use crate::app::{
+use crate::{app::{
     App,
-    state::{AppState, UiMode}
+    state::{AppState, UiMode}}
 };
 
 use self::ui::{check_size, draw_size_error, draw_explore, draw_select_folder, draw_mod_popup};

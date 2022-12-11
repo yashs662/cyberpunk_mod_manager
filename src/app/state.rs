@@ -1,4 +1,4 @@
-use super::utils::StatefulList;
+use super::utils::{StatefulList, ModOptions};
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum AppStatus {
@@ -143,6 +143,7 @@ pub struct AppState {
 
 impl Default for AppState {
     fn default() -> AppState {
+        let mod_options_list = ModOptions::get_all_options_as_listitems();
         AppState {
             status: AppStatus::Init,
             focus: Focus::NoFocus,
@@ -150,7 +151,7 @@ impl Default for AppState {
             select_folder_form: vec![String::new(), String::new()],
             ui_mode: UiMode::Explore,
             file_list: StatefulList::with_items(vec![]),
-            mod_options: StatefulList::with_items(vec![]),
+            mod_options: StatefulList::with_items(mod_options_list),
         }
     }
 }

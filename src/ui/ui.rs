@@ -14,7 +14,8 @@ use crate::{
                 LOG_DEBUG_STYLE, LOG_WARN_STYLE, LOG_TRACE_STYLE,
                 LOG_INFO_STYLE, MOD_FOLDER_INPUT_EMPTY_ERROR, NOT_A_DIRECTORY_ERROR,
                 CYBERPUNK_FOLDER_INPUT_EMPTY_ERROR, NOT_A_VALID_CYBERPUNK_FOLDER_ERROR,
-                CYBERPUNK_STYLE_YELLOW, CYBERPUNK_STYLE_PINK, CYBERPUNK_STYLE_CYAN, CYBERPUNK_STYLE_YELLOW_DARK, CYBERPUNK_STYLE_PINK_DARK, CYBERPUNK_STYLE_CYAN_DARK
+                CYBERPUNK_STYLE_YELLOW, CYBERPUNK_STYLE_PINK, CYBERPUNK_STYLE_CYAN,
+                CYBERPUNK_STYLE_YELLOW_DARK, CYBERPUNK_STYLE_PINK_DARK, CYBERPUNK_STYLE_CYAN_DARK
     },
     App, app::{state::{Focus, AppStatus}, utils::ModOptions},
 };
@@ -47,7 +48,7 @@ where
     let title = draw_title(false);
     rect.render_widget(title, chunks[0]);
 
-    let mut text = vec![Spans::from(Span::styled(msg, ERROR_TEXT_STYLE))];
+    let mut text = vec![Spans::from(Span::styled(&msg, ERROR_TEXT_STYLE))];
     text.append(&mut vec![Spans::from(Span::raw("Resize the window to continue, or press 'q' to quit."))]);
     let body = Paragraph::new(text)
     .block(Block::default().borders(Borders::ALL))
@@ -288,7 +289,7 @@ pub fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
 
 pub fn draw_mod_popup<B: Backend>(f: &mut Frame<B>, app: &App, mod_options_state: &mut ListState) {
     let clear_area = centered_rect(90, 90, f.size());
-    let popup_area = centered_rect(0, 80, f.size());
+    let popup_area = centered_rect(80, 80, f.size());
     // clear the popup area
     f.render_widget(Clear, clear_area);
     f.render_widget(Block::default()
@@ -300,9 +301,9 @@ pub fn draw_mod_popup<B: Backend>(f: &mut Frame<B>, app: &App, mod_options_state
         .direction(Direction::Vertical)
         .constraints(
             [
-                Constraint::Percentage(10),
-                Constraint::Percentage(80),
-                Constraint::Percentage(10),
+                Constraint::Length(3),
+                Constraint::Percentage(75),
+                Constraint::Length(3),
             ]
             .as_ref(),
         )
