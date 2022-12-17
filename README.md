@@ -23,6 +23,15 @@ This project is just a quick and dirty utility, i am not going to maintain it re
 # Screenshots
 ![cyberpunk_mod_manager](https://user-images.githubusercontent.com/66156000/206888889-d92e3fc5-1cb0-4606-af34-b08ad1f6accb.png)
 
+# Compatability
+This program is only tested on Windows 11
+libarchive is required to be installed to run this program, you can install it using vcpkg from [here](https://github.com/microsoft/vcpkg) 
+I had to use the triplet x64-windows-static-md to get it to work
+sample command:
+```
+./vcpkg.exe install libarchive --triplet=x64-windows-static-md
+```
+
 # Credits
 Huge thanks to [Nexus Mods](https://www.nexusmods.com/) for providing a great modding community and a great modding platform
 
