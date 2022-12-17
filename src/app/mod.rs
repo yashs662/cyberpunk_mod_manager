@@ -319,7 +319,7 @@ impl App {
                         } else if self.state.status == AppStatus::Initialized {
                             if self.state.ui_mode == UiMode::SelectFolder {
                                 self.state.ui_mode = UiMode::Explore;
-                            } else if self.state.ui_mode == UiMode::Explore {
+                            } else if self.state.ui_mode == UiMode::Explore && self.mod_popup.is_none() {
                                 return AppReturn::Exit;
                             }
                         }

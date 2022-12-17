@@ -55,6 +55,7 @@ pub async fn start_ui(app: &Arc<tokio::sync::Mutex<App>>) -> Result<()> {
         };
         // Check if we should exit
         if result == AppReturn::Exit {
+            app.dispatch(IoEvent::DeleteTempDir).await;
             events.close();
             break;
         }

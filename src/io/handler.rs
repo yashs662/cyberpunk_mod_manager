@@ -63,6 +63,7 @@ impl IoAsyncHandler {
             }
             IoEvent::SaveSettings => self.do_save_settings().await,
             IoEvent::LoadMods => self.do_load_mods(false).await,
+            IoEvent::DeleteTempDir => self.delete_temp_dir().await,
         };
 
         if let Err(err) = result {
@@ -144,6 +145,12 @@ impl IoAsyncHandler {
                 }
                 fs_extra::copy_items(&[path], &dest_path.parent().unwrap(), &copy_options)?;
             }
+        }
+        // check if duplicate folder is created one up cyberpunk folder if so delete it it will be mod_folder_name
+        let duplicate_folder = cyberpunk_dir.parent().unwrap().join(mod_file_name.split('.').next().unwrap());
+        if duplicate_folder.exists() {
+            debug!("🚀 Deleting duplicate folder {}", duplicate_folder.to_str().unwrap());
+            fs::remove_dir_all(duplicate_folder)?;
         }
         info!("👍 Mod installed");
         Ok(())
@@ -445,6 +452,29 @@ impl IoAsyncHandler {
             // clear temp input store
             app.state.select_folder_form[0] = String::new();
             app.state.select_folder_form[1] = String::new();
+        }
+        Ok(())
+    }
+
+    async fn delete_temp_dir(&mut self) -> Result<()> {
+        // temp dir is in temp folder / WORKING_DIR_NAME
+        let mut temp_dir = temp_dir();
+        temp_dir.push(WORKING_DIR_NAME);
+        // check if it exists, if so delete everything including folders in it except for SAVE_FILE_NAME
+        if temp_dir.exists() {
+            for entry in fs::read_dir(temp_dir.clone()).unwrap() {
+                if let Ok(entry) = entry {
+                    if let Ok(metadata) = entry.metadata() {
+                        if metadata.is_file() {
+                            if entry.file_name().to_string_lossy().to_string() != SAVE_FILE_NAME {
+                                fs::remove_file(entry.path()).unwrap();
+                            }
+                        } else {
+                            fs::remove_dir_all(entry.path()).unwrap();
+                        }
+                    }
+                }
+            }
         }
         Ok(())
     }
