@@ -1,3 +1,4 @@
+[![Crates.io](https://img.shields.io/crates/v/cyberpunk_mod_manager.svg)](https://crates.io/crates/cyberpunk_mod_manager)
 # cyberpunk_mod_manager
 
 Simple mod manager for cyberpunk

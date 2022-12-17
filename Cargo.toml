@@ -1,6 +1,6 @@
 [package]
 name = "cyberpunk_mod_manager"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 authors = ["Yash Sharma <yashs662@gmail.com>"]
 description = "A mod manager for Cyberpunk 2077"
