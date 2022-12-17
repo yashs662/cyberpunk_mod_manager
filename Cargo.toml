@@ -5,7 +5,7 @@ edition = "2021"
 authors = ["Yash Sharma <yashs662@gmail.com>"]
 description = "A mod manager for Cyberpunk 2077"
 repository = "https://github.com/yashs662/cyberpunk_mod_manager"
-license = "GNU General Public License v3.0"
+license = "GPL-3.0"
 keywords = ["TUI", "Cyberpunk", "modding", "tui-rs"]
 categories = ["command-line-interface", "command-line-utilities", "games"]
 
