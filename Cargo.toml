@@ -6,8 +6,8 @@ authors = ["Yash Sharma <yashs662@gmail.com>"]
 description = "A mod manager for Cyberpunk 2077"
 repository = "https://github.com/yashs662/cyberpunk_mod_manager"
 license = "GNU General Public License v3.0"
-keywords = ["TUI", "mod manager", "cyberpunk", "cyberpunk 2077", "cyberpunk2077", "cyberpunk mod manager",
-    "cyberpunk 2077 mod manager", "cyberpunk2077 mod manager", "command-line-utilities"]
+keywords = ["TUI", "Cyberpunk", "modding", "tui-rs"]
+categories = ["command-line-interface", "command-line-utilities", "games"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

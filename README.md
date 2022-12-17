@@ -22,3 +22,8 @@ This project is just a quick and dirty utility, i am not going to maintain it re
 
 # Screenshots
 ![cyberpunk_mod_manager](https://user-images.githubusercontent.com/66156000/206888889-d92e3fc5-1cb0-4606-af34-b08ad1f6accb.png)
+
+# Credits
+Huge thanks to [Nexus Mods](https://www.nexusmods.com/) for providing a great modding community and a great modding platform
+
+Thank you [fdehau](https://crates.io/crates/tui) for creating tui-rs it is an amazing tool for creating terminal applications
